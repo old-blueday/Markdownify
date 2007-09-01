@@ -123,6 +123,13 @@ class parseHTML {
 
 		if ($this->html[0] == '<') {
 			$token = substr($this->html, 0, 9);
+			if (substr($token, 0, 2) == '<?') {
+				# xml prolog or other pi's
+				trigger_error('this might need some work', E_USER_NOTICE);
+				$pos = strpos($this->html, '?>');
+				$this->setNode('pi', $pos + 2);
+				return true;
+			}
 			if (substr($token, 0, 4) == '<!--') {
 				# comment
 				$pos = strpos($this->html, '-->');
@@ -140,7 +147,7 @@ class parseHTML {
 			}
 			if ($token == '<!DOCTYPE') {
 				# doctype
-				$this->setNode('doctype', strpos($this->html, '>'));
+				$this->setNode('doctype', strpos($this->html, '>')+1);
 
 				$skipWhitespace = true;
 				return true;
@@ -358,6 +365,13 @@ class parseHTML {
 			'li' => true,
 			'dd' => true,
 			'dt' => true,
+			# header items and html / body as well
+			'html' => true,
+			'body' => true,
+			'head' => true,
+			'meta' => true,
+			'style' => true,
+			'title' => true,
 			# inline elements
 			'a' => false,
 			'abbr' => false,
@@ -452,7 +466,13 @@ function indentHTML($html, $indent = "  ") {
 				$html .= implode($indent_a);
 			}
 			$html .= $parser->node;
-			$last = false;
+
+			if (in_array($parser->nodeType, array('comment', 'pi', 'doctype'))) {
+				var_dump($parser->node);
+				$html .= "\n";
+			} else {
+				$last = false;
+			}
 		}
 	}
 	return $html;
@@ -461,9 +481,20 @@ function indentHTML($html, $indent = "  ") {
 # testcase / example
 error_reporting(E_ALL);
 
-#$parser->html = '<div><code>asdf</code></div>';
-echo '<pre>';
-$html = file_get_contents('testcase.txt');
-#$html = '<p><div> </p><p>asdf</p> </div> <p>asdf</p>  <pre>  <code>   asdf  </code>  <b>asdf</b> </pre><p>asdf <a>asdf</a></p>';
-echo htmlspecialchars(indentHTML($html));
+$html = '<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <title>NewsPaper</title>
+</head>
+<body>
+	<div style=">">
+		asdfasdf
+	</div>
+</body>
+</html>
+';
+echo indentHTML($html);
+die();
 */
