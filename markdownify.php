@@ -93,7 +93,7 @@ class Markdownify {
 	/**
 	 * constructor, set options, setup parser
 	 */
-	function Markdownify($linksAfterEachParagraph = false, $bodyWidth = 80, $keepHTML = true) {
+	function Markdownify($linksAfterEachParagraph = false, $bodyWidth = 0, $keepHTML = true) {
 		$this->linksAfterEachParagraph = $linksAfterEachParagraph;
 		$this->keepHTML = $keepHTML;
 		$this->bodyWidth = $bodyWidth;
@@ -585,6 +585,10 @@ class Markdownify {
 	function handleTag_ul() {
 		if ($this->parser->isStartTag) {
 			$this->stack();
+			if (substr($this->output, -strlen("\n".$this->indent)) != "\n".$this->indent) {
+				var_dump(substr($this->output, -10));
+				$this->out("\n".$this->indent);
+			}
 		} else {
 			$this->unstack();
 			$this->setLineBreaks(2);
@@ -600,6 +604,14 @@ class Markdownify {
 		# same as above
 		$this->parser->tagAttributes['num'] = 0;
 		$this->handleTag_ul();
+		if (!$this->parser->isStartTag) {
+			$this->setLineBreaks(2);
+		} else {
+			if (substr($this->output, -strlen("\n".$this->indent)) != "\n".$this->indent) {
+				var_dump(substr($this->output, -10));
+				$this->out("\n".$this->indent);
+			}
+		}
 	}
 	/**
 	 * handle <li> tags
@@ -610,12 +622,17 @@ class Markdownify {
 	function handleTag_li() {
 		if ($this->parent() == 'ol') {
 			$parent =& $this->getStacked('ol');
-			$parent['num']++;
-			var_dump($this->getStacked('ol'));
-			die();
-			$this->indent($parent['num'].str_repeat(' ', 4 - strlen($parent['num'])));
+			if ($this->parser->isStartTag) {
+				$parent['num']++;
+				$this->out($parent['num'].'.'.str_repeat(' ', 3 - strlen($parent['num'])));
+			}
+			$this->indent('    ', false);
 		} else {
-			$this->indent('*   ');
+			if ($this->parser->isStartTag) {
+				$this->out('*  ');
+			}
+			$this->notice('configurable list char: * - +');
+			$this->indent('    ', false);
 		}
 		if (!$this->parser->isStartTag) {
 			$this->setLineBreaks(1);
@@ -628,6 +645,7 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_hr() {
+		$this->notice('configurable hr');
 		$this->out(str_repeat(' ', $this->bodyWidth / 2 - 3).'* * *');
 		$this->setLineBreaks(2);
 	}
@@ -665,7 +683,7 @@ class Markdownify {
 	 * @param string $tagName
 	 * @return array
 	 */
-	function getStacked($tagName) {
+	function & getStacked($tagName) {
 		// no end() so it can be referenced
 		return $this->stack[$tagName][count($this->stack[$tagName])-1];
 	}
@@ -732,10 +750,12 @@ class Markdownify {
 	 * @param bool $output add indendation to output
 	 * @return void
 	 */
-	function indent($str) {
+	function indent($str, $output = true) {
 		if ($this->parser->isStartTag) {
 			$this->indent .= $str;
-			$this->out($str);
+			if ($output) {
+				$this->out($str);
+			}
 		} else {
 			$this->indent = substr($this->indent, 0, -strlen($str));
 		}
