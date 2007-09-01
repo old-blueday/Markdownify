@@ -262,7 +262,7 @@ class parseHTML {
 			# close tag
 			if ($this->html[$pos] == '>' || $this->html[$pos].$this->html[$pos+1] == '/>') {
 				if ($this->html[$pos] == '/') {
-					$emptyTag = true;
+					$isEmptyTag = true;
 					$pos++;
 				}
 				break;
