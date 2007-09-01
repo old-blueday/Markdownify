@@ -130,10 +130,10 @@ class parseHTML {
 			return false;
 		}
 		static $skipWhitespace = true;
-		# dont truncate whitespaces for <code> or <pre> contents
 		if ($this->isStartTag && !$this->isEmptyTag) {
 			array_push($this->openTags, $this->tagName);
 			if (in_array($this->tagName, $this->preformattedTags)) {
+				# dont truncate whitespaces for <code> or <pre> contents
 				$this->keepWhitespace++;
 			}
 		}
@@ -253,6 +253,7 @@ class parseHTML {
 
 		$tagName = strtolower($tagName);
 
+		# get tag attributes
 		$isEmptyTag = false;
 		$attributes = array();
 		$currAttrib = '';
@@ -262,6 +263,7 @@ class parseHTML {
 			if ($this->html[$pos] == '>' || $this->html[$pos].$this->html[$pos+1] == '/>') {
 				if ($this->html[$pos] == '/') {
 					$emptyTag = true;
+					$pos++;
 				}
 				break;
 			}
@@ -273,6 +275,7 @@ class parseHTML {
 			} elseif (in_array($this->html[$pos], array(' ', "\t"))) {
 				# drop whitespace
 			} elseif (in_array($this->html[$pos].$this->html[$pos+1], array('="', "='"))) {
+				# get attribute value
 				$pos++;
 				$await = $this->html[$pos]; # single or double quote
 				$pos++;
@@ -516,20 +519,36 @@ function indentHTML($html, $indent = "  ") {
 # testcase / example
 error_reporting(E_ALL);
 
-$html = '<?xml version="1.0" encoding="iso-8859-1"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+$html = '<p>Simple block on one line:</p>
 
-<head>
-  <title>NewsPaper</title>
-</head>
-<body>
-	<div style=">">
-		asdfasdf
-	</div>
-</body>
-</html>
-';
+<div>foo</div>
+
+<p>And nested without indentation:</p>
+
+<div>
+<div>
+<div>
+foo
+</div>
+<div style=">"/>
+</div>
+<div>bar</div>
+</div>
+
+<p>And with attributes:</p>
+
+<div>
+    <div id="foo">
+    </div>
+</div>
+
+<p>This was broken in 1.0.2b7:</p>
+
+<div class="inlinepage">
+<div class="toggleableend">
+foo
+</div>
+</div>';
 #$html = '<a href="asdfasdf"       title=\'asdf\' foo="bar">asdf</a>';
 echo indentHTML($html);
 die();
