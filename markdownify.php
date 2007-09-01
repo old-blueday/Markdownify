@@ -59,6 +59,12 @@ class Markdownify {
 	 * @var string
 	 */
 	var $output;
+	/**
+	 * skip conversion to markdown
+	 *
+	 * @var bool
+	 */
+	var $skipConversion = false;
 	/* options */
 	/**
 	 * keep html tags which cannot be converted to markdown
@@ -212,14 +218,16 @@ class Markdownify {
 					$this->handleText();
 					break;
 				case 'tag':
+					if ($this->skipConversion) {
+						$this->handleTagToText();
+						continue;
+					}
 					if (in_array($this->parser->tagName, $this->ignore)) {
 						$this->ignoreTag();
 						break;
 					}
-					if ($this->parser->isStartTag && $this->lineBreaks) {
-						# enque linebreaks for block elements and <br> etc.
-						$this->out(str_repeat("\n".$this->indent, $this->lineBreaks));
-						$this->lineBreaks = 0;
+					if ($this->parser->isStartTag) {
+						$this->flushLinebreaks();
 					}
 					if (!$this->parser->keepWhitespace && $this->parser->isBlockElement) {
 						if ($this->parser->isStartTag) {
@@ -231,7 +239,6 @@ class Markdownify {
 					if (isset($this->isMarkdownable[$this->parser->tagName])) {
 						call_user_func(array(&$this, 'handleTag_'.$this->parser->tagName));
 					} else {
-						$this->notice('needs much more work');
 						$this->handleTagToText();
 					}
 					break;
@@ -242,15 +249,10 @@ class Markdownify {
 		}
 		# end parsing, handle stacked tags
 		$this->handleStacked();
-		# output footnotes
-		$this->handleFootnotes();
 
 		### cleanup
 		$this->output = rtrim(str_replace('&amp;', '&', str_replace('&lt;', '<', str_replace('&gt;', '>', $this->output))));
 	}
-	/**
-	 * skip tag but process children
-	 */
 	/**
 	 * handle stacked links, acronyms
 	 *
@@ -268,13 +270,14 @@ class Markdownify {
 		}
 	}
 	/**
-	 * handle footnotes
+	 * flush enqued linebreaks
 	 *
 	 * @param void
 	 * @return void
 	 */
-	function handleFootnotes() {
-
+	function flushLinebreaks() {
+		$this->out(str_repeat("\n".$this->indent, $this->lineBreaks));
+		$this->lineBreaks = 0;
 	}
 	/**
 	 * handle non Markdownable tags
@@ -284,16 +287,30 @@ class Markdownify {
 	 */
 	function handleTagToText() {
 		if (!$this->keepHTML) {
-			return;
-		}
-		if ($this->parser->isBlockElement) {
 			if ($this->parser->isStartTag) {
-				$this->out($this->parser->node."\n");
+				$this->flushLinebreaks();
 			} else {
-				$this->out("\n".$this->parser->node);
 				$this->setLineBreaks(2);
 			}
-			$this->indent('  ');
+		} else {
+			if ($this->parser->isBlockElement) {
+				if ($this->parser->isStartTag) {
+					$this->flushLinebreaks();
+					$this->out($this->parser->node."\n".$this->indent);
+
+					$this->skipConversion = implode('/', $this->parser->openTags);
+					if (!$this->parser->isEmptyTag) {
+						$this->indent('  ');
+					}
+				} else {
+					$this->indent('  ');
+					$this->out("\n".$this->indent.$this->parser->node);
+					$this->setLineBreaks(2);
+					if ($this->skipConversion == implode('/', $this->parser->openTags)) {
+						$this->skipConversion = false;
+					}
+				}
+			}
 		}
 	}
 	/**
@@ -507,7 +524,7 @@ class Markdownify {
 	 */
 	function handleTag_code() {
 		if ($this->hasParent('pre')) {
-			# drop code blocks inside <pre>
+			# ignore code blocks inside <pre>
 			return;
 		}
 		if ($this->parser->isStartTag) {
@@ -515,6 +532,7 @@ class Markdownify {
 		} else {
 			$buffer = $this->unbuffer();
 			preg_match_all('#`+#', $buffer, $matches);
+			$this->todo('only use as many backticks as needed');
 			if (!empty($matches[0])) {
 				rsort($matches[0]);
 				$len = strlen($matches[0][0])+1;
@@ -538,8 +556,7 @@ class Markdownify {
 		$this->indent('    ');
 		if (!$this->parser->isStartTag) {
 			$this->output = rtrim($this->output);
-			$this->notice('should only the very last line be trimmed?');
-			$this->setLineBreaks(2);
+			$this->setLineBreaks(1);
 		} else {
 			$this->parser->html = ltrim($this->parser->html);
 		}
@@ -551,12 +568,11 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_blockquote() {
-		$this->notice('cant this be done with more magic? so we dont need to do any cleanup afterwards?');
 		if (!$this->parser->isStartTag) {
 			if (substr($this->output, -2) == "\n>") {
+				$this->notice('what\'s this?');
 				$this->output = substr($this->output, 0, -2);
 			}
-			$this->setLineBreaks(2);
 		}
 		$this->indent('> ');
 	}
