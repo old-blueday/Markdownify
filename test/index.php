@@ -1,13 +1,21 @@
 <?php
 header('Content-Type:text/plain; charset=utf-8');
 
+define('COL_WIDTH', 180);
+define('DIFF_FGCOLOR_D', 'white');
+define('DIFF_BGCOLOR_D', 'red');
+define('DIFF_FGCOLOR_A', 'white');
+define('DIFF_BGCOLOR_A', 'green');
+define('DIFF_FGCOLOR_C', 'white');
+define('DIFF_BGCOLOR_C', 'brown');
+
 error_reporting(E_ALL);
 ini_set('html_errors', false);
 
 chdir(dirname(__FILE__).'/..');
 
 require_once('parsehtml.php');
-require_once('html2text2.php');
+require_once('markdownify.php');
 require_once('test/folder.php');
 require_once('test/functions.php');
 require_once('test/test.class.php');

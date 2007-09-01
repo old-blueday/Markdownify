@@ -1,20 +1,11 @@
 <?php
 /**
  * parseHTML is a HTML parser which works with PHP 4 and above.
- * It
+ * It tries to handle invalid HTML to some degree.
  *
- * It started as a port of Aaron Swartz' [4] html2text.py [5] but
- * got a long way since. This is more than a mere port now!
- *
- * [1]: http://daringfireball.com/projects/markdown
- * [2]: http://www.michelf.com/projects/php-markdown/extra/
- * [3]: http://www.michelf.com/
- * [4]: http://www.aaronsw.com/
- * [5]: http://www.aaronsw.com/2002/html2text/
- *
- * @version 1.6.1
+ * @version 1.0 beta
  * @author Milian Wolff (mail@milianw.de, http://milianw.de)
- * @license LGPL, see LICENSE.txt and below
+ * @license LGPL, see LICENSE_LGPL.txt and the summary below
  * @copyright (C) 2007  Milian Wolff
  *
  * This library is free software; you can redistribute it and/or
@@ -208,6 +199,7 @@ class parseHTML {
 		$breakPos = strpos($this->html, "\n");
 		if (($openPos && $openPos < $closePos) || ($breakPos && $breakPos < $closePos)) {
 			# invalid
+			trigger_error('invalid tag encountered, will try to handle it gracefully', E_USER_NOTICE);
 			$this->html = substr_replace($this->html, '&lt;', 0, 1);
 			return false;
 		}
@@ -225,6 +217,7 @@ class parseHTML {
 		# get tag name
 		if (!preg_match('#^[a-z][a-z1-6]*(?=\s|/|>)#i', $node, $matches)) {
 			# not a valid tag!
+			trigger_error('invalid tag encountered, will try to handle it gracefully', E_USER_NOTICE);
 			$this->html = substr_replace($this->html, '&lt;', 0, 1);
 			return false;
 		}
@@ -246,6 +239,7 @@ class parseHTML {
 		} else {
 			if ($tagName != $this->openTags[count($this->openTags)-1]) {
 				# not a valid closing tag!
+				trigger_error('invalid closing tag encountered, will try to handle it gracefully', E_USER_NOTICE);
 				$this->html = substr_replace($this->html, '&lt;', 0, 1);
 				return false;
 			}

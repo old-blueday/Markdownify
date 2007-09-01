@@ -1,23 +1,28 @@
 <?php
 /**
- * html2text converts HTML Markup to Markdown [1]. It also supports
- * Markdown Extra [2] by Michel Fortin [3].
+ * Markdownify converts HTML Markup to [Markdown][1] (by [John Gruber][2]. It
+ * also supports [Markdown Extra][3] by [Michel Fortin][4].
  *
- * It started as a port of Aaron Swartz' [4] html2text.py [5] but
+ * It all started as a port of [Aaron Swartz'][5] [`html2text.py`][6] but
  * got a long way since. This is more than a mere port now!
  * Starting with version 2.0.0 this is a complete rewrite and
- * cannot be compared to Aaron Swatz' html2text.py. It uses my parseHTML
- * class and my logic.
+ * cannot be compared to Aaron Swatz' `html2text.py` anylonger. I'm now using a
+ * HTML parser (see `parsehtml.php` which I also wrote) which makes most of the
+ * evil RegEx magic go away and additionally it gives a much cleaner class
+ * structure. Also notably is the fact that I now try to prevent regressions by
+ * utilizing testcases of Michel Fortin's [MDTest][7].
  *
  * [1]: http://daringfireball.com/projects/markdown
- * [2]: http://www.michelf.com/projects/php-markdown/extra/
- * [3]: http://www.michelf.com/
- * [4]: http://www.aaronsw.com/
- * [5]: http://www.aaronsw.com/2002/html2text/
+ * [2]: http://daringfireball.com/
+ * [3]: http://www.michelf.com/projects/php-markdown/extra/
+ * [4]: http://www.michelf.com/
+ * [5]: http://www.aaronsw.com/
+ * [6]: http://www.aaronsw.com/2002/html2text/
+ * [7]: http://article.gmane.org/gmane.text.markdown.general/2540
  *
- * @version 2.0.0
- * @author Milian Wolff (mail@milianw.de, http://milianw.de)
- * @license LGPL, see LICENSE.txt and below
+ * @version 2.0.0 alpha
+ * @author Milian Wolff (<mail@milianw.de>, <http://milianw.de>)
+ * @license LGPL, see LICENSE_LGPL.txt and the summary below
  * @copyright (C) 2007  Milian Wolff
  *
  * This library is free software; you can redistribute it and/or
@@ -35,7 +40,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-class html2text {
+class Markdownify {
 	/**
 	 * current indendation
 	 *
@@ -45,7 +50,7 @@ class html2text {
 	/**
 	 * html parser object
 	 *
-	 * @var object
+	 * @var parseHTML
 	 */
 	var $parser;
 	/**
@@ -82,7 +87,7 @@ class html2text {
 	/**
 	 * constructor, set options, setup parser
 	 */
-	function html2text($linksAfterEachParagraph = false, $bodyWidth = 80, $keepHTML = true) {
+	function Markdownify($linksAfterEachParagraph = false, $bodyWidth = 80, $keepHTML = true) {
 		$this->linksAfterEachParagraph = $linksAfterEachParagraph;
 		$this->keepHTML = $keepHTML;
 		$this->bodyWidth = $bodyWidth;
@@ -278,15 +283,17 @@ class html2text {
 	 * @return void
 	 */
 	function handleTagToText() {
-		if ($this->keepHTML) {
-			$this->out($this->parser->node);
+		if (!$this->keepHTML) {
+			return;
 		}
 		if ($this->parser->isBlockElement) {
 			if ($this->parser->isStartTag) {
-				$this->setLineBreaks(1);
+				$this->out($this->parser->node."\n");
 			} else {
+				$this->out("\n".$this->parser->node);
 				$this->setLineBreaks(2);
 			}
+			$this->indent('  ');
 		}
 	}
 	/**
@@ -759,7 +766,13 @@ class html2text {
 		die('TODO: '.($message ? $message : '')."\n".called()."\n".str_repeat('-', 75)."\n".$this->parser->node.$this->parser->html);
 	}
 	function notice($message = false) {
-		print("\nnotice: ".($message ? $message : '')."\n".called()."\n\n");
+		static $already_called = array();
+		$called = called();
+		if (in_array($called, $already_called))
+			return;
+
+		print("\nnotice: ".($message ? $message : '')."\n".$called."\n\n");
+		array_push($already_called, $called);
 	}
 }
 function dump() {

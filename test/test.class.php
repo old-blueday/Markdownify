@@ -1,13 +1,38 @@
 <?php
-
+/**
+ * test class for Markdownify
+ *
+ * @author Milian Wolff (<mail@milianw.de>, <http://milianw.de>)
+ * @license GPL, see LICENSE_GPL.txt and below
+ * @copyright (C) 2007  Milian Wolff
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
 class test {
 	var $memory = 0;
 	var $time = 0;
+	var $show;
+	var $tmpfile;
 
-	var $html2text;
+	var $markdownify;
 
 	public function __construct() {
-		$this->html2text = new html2text;
+		# default params
+		$this->markdownify = new markdownify;
+		$this->show = param('show');
+		$this->tmpfile = dirname(__FILE__).'.tmp';
 	}
 	public function memory() {
 		$old = $this->memory;
@@ -52,25 +77,35 @@ class test {
 	public function run($testcase, $path) {
 		static $i = 0;
 		$i++;
-		if (isset($_REQUEST['show']) && $_REQUEST['show'] != $i) {
+		if ($this->show && $this->show != $i) {
 			return;
 		}
-		echo "running testcase: $testcase ($path)\n".str_repeat('=', 75)."\n";
+		echo "running testcase: $testcase ($path)\n".str_repeat('=', COL_WIDTH)."\n";
 		$orig = file_get_contents($path.'.text');
 		$html = file_get_contents($path.'.html');
 		$this->memory();
 		$this->time();
-		$parsed = $this->html2text->parseString($html);
-		echo "  input:\n".str_repeat('-', 75)."\n".$html."\n\n".
-		     str_repeat('-', 75)."\n".
-		     "  original:\n".str_repeat('-', 75)."\n".$orig."\n\n".
-		     str_repeat('-', 75)."\n".
-		     "  html2text:\n".str_repeat('-', 75)."\n".$parsed."\n\n".
-		     str_repeat('-', 75)."\n".
-		     "  RAM:\t".$this->memory()."\n".
-			 "  TIME:\t".$this->time()."\n\n".str_repeat(':',50)."\n".
-		     PHPDiff($orig, $parsed)."\n".str_repeat(':', 50)."\n";
-		$this->awaitInput();
+		$parsed = $this->markdownify->parseString($html);
+		$mem = $this->memory();
+		$time = $this->time();
+		#$diff = PHPDiff($orig, $parsed);
+
+		file_put_contents($this->tmpfile, $parsed);
+		$diff = shell_exec('diff "'.$path.'.text" "'.$this->tmpfile.'"');
+		#die($diff);
+		highlight_diff(&$orig, &$parsed, $diff);
+		#echo $orig."\n---\n";
+		#echo $parsed."\n---\n";
+		#echo $diff."\n---\n";
+		#die();
+		echo columns(array('html input' => $html, 'original markdown' => $orig, 'parsed markdown' => $parsed))."\n".
+		     "  RAM:\t".$mem."\n".
+			 "  TIME:\t".$time."\n\n".
+			 "  DIFF\n".str_repeat(':', COL_WIDTH)."\n".
+		     $diff."\n".str_repeat(':', COL_WIDTH)."\n";
+		if (!$this->show) {
+			$this->awaitInput();
+		}
 	}
 	public function awaitInput($output = '...hit enter...') {
 		if (!defined('STDIN'))
