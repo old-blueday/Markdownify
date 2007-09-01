@@ -32,7 +32,7 @@ class test {
 		# default params
 		$this->markdownify = new markdownify;
 		$this->show = param('show');
-		$this->tmpfile = dirname(__FILE__).'.tmp';
+		$this->tmpfile = dirname(__FILE__).'/.tmp';
 	}
 	public function memory() {
 		$old = $this->memory;
@@ -100,9 +100,11 @@ class test {
 		#die();
 		echo columns(array('html input' => $html, 'original markdown' => $orig, 'parsed markdown' => $parsed))."\n".
 		     "  RAM:\t".$mem."\n".
-			 "  TIME:\t".$time."\n\n".
-			 "  DIFF\n".str_repeat(':', COL_WIDTH)."\n".
-		     $diff."\n".str_repeat(':', COL_WIDTH)."\n";
+			 "  TIME:\t".$time."\n\n";
+		if (param('show_diff')) {
+			echo "  DIFF\n".str_repeat(':', COL_WIDTH)."\n".
+					$diff."\n".str_repeat(':', COL_WIDTH)."\n";
+		}
 		if (!$this->show) {
 			$this->awaitInput();
 		}
