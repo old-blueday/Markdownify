@@ -14,11 +14,11 @@ ini_set('html_errors', false);
 
 chdir(dirname(__FILE__).'/..');
 
-require_once('parsehtml.php');
-require_once('markdownify.php');
 require_once('test/folder.php');
 require_once('test/functions.php');
 require_once('test/test.class.php');
+require_once('markdownify.php');
+require_once('parsehtml.php');
 
 $test = new test;
 
