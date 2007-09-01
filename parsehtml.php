@@ -24,11 +24,28 @@
  */
 class parseHTML {
 	/**
-	 * xhtml or html 4.01 output
+	 * tags which are always empty (<br /> etc.)
 	 *
-	 * @var bool
+	 * @var array<string>
 	 */
-	var $useXhtmlSyntax = true;
+	var $emptyTags = array(
+		'br',
+		'hr',
+		'input',
+		'img',
+	);
+	/**
+	 * tags with preformatted text
+	 * whitespaces wont be touched in them
+	 *
+	 * @var array<string>
+	 */
+	var $preformattedTags = array(
+		'script',
+		'style',
+		'pre',
+		'code',
+	);
 	/**
 	 * html to be parsed
 	 *
@@ -116,7 +133,7 @@ class parseHTML {
 		# dont truncate whitespaces for <code> or <pre> contents
 		if ($this->isStartTag && !$this->isEmptyTag) {
 			array_push($this->openTags, $this->tagName);
-			if($this->tagName == 'code' || $this->tagName == 'pre') {
+			if (in_array($this->tagName, $this->preformattedTags)) {
 				$this->keepWhitespace++;
 			}
 		}
@@ -126,8 +143,8 @@ class parseHTML {
 			if (substr($token, 0, 2) == '<?') {
 				# xml prolog or other pi's
 				trigger_error('this might need some work', E_USER_NOTICE);
-				$pos = strpos($this->html, '?>');
-				$this->setNode('pi', $pos + 2);
+				$pos = strpos($this->html, '>');
+				$this->setNode('pi', $pos + 1);
 				return true;
 			}
 			if (substr($token, 0, 4) == '<!--') {
@@ -201,94 +218,112 @@ class parseHTML {
 	 * @return bool
 	 */
 	function parseTag() {
-		$closePos = strpos($this->html, '>');
-		$openPos = strpos($this->html, '<', 1);
-		$breakPos = strpos($this->html, "\n");
-		if (($openPos && $openPos < $closePos) || ($breakPos && $breakPos < $closePos)) {
-			# invalid
-			trigger_error('invalid tag encountered, will try to handle it gracefully', E_USER_NOTICE);
-			$this->html = substr_replace($this->html, '&lt;', 0, 1);
-			return false;
-		}
-		$node = substr($this->html, 1, $closePos);
-
-		# defaults
-		$isStartTag = true;
-		$isEmptyTag = false;
-		if ($node[0] == '/') {
-			# closing tag
-			$isStartTag = false;
-			$node = substr($node, 1);
+		# tag definitions must be on one line
+		$endpos = strpos($this->html, "\n");
+		if (!$endpos) {
+			$endpos = strlen($this->html);
 		}
 
-		# get tag name
-		if (!preg_match('#^[a-z][a-z1-6]*(?=\s|/|>)#i', $node, $matches)) {
-			# not a valid tag!
-			trigger_error('invalid tag encountered, will try to handle it gracefully', E_USER_NOTICE);
-			$this->html = substr_replace($this->html, '&lt;', 0, 1);
-			return false;
+		$a_ord = ord('a');
+		$z_ord = ord('z');
+
+		$tagName = '';
+
+		$pos = 1;
+		$isStartTag = $this->html[$pos] != '/';
+		if (!$isStartTag) {
+			$pos++;
 		}
-		$tagName = strtolower($matches[0]);
-		# update list of open tags
-		if ($isStartTag) {
-			# tags which could possibly be empty (<br> instead of <br />)
-			$emptyTags = array(
-				'br',
-				'hr',
-				'input',
-				'img',
-			);
-			if (substr($node, -1) == '/' || in_array($tagName, $emptyTags)) {
-				# empty tag
-				$isEmptyTag = true;
-				$node = substr($node, 0, -1);
+		# get tagName
+		while ($pos < $endpos) {
+			$pos_ord = ord($this->html[$pos]);
+			if ($pos_ord >= $a_ord && $pos_ord <= $z_ord) {
+				$tagName .= $this->html[$pos];
+				$pos++;
+			} else {
+				$pos--;
+				break;
 			}
-		} else {
-			if ($tagName != $this->openTags[count($this->openTags)-1]) {
-				# not a valid closing tag!
-				trigger_error('invalid closing tag encountered, will try to handle it gracefully', E_USER_NOTICE);
-				$this->html = substr_replace($this->html, '&lt;', 0, 1);
+		}
+		if (empty($tagName)) {
+			# something went wrong => invalid tag
+			$this->invalidTag();
+			return false;
+		}
+
+		$tagName = strtolower($tagName);
+
+		$isEmptyTag = false;
+		$attributes = array();
+		$currAttrib = '';
+		while ($pos < $endpos) {
+			$pos++;
+			# close tag
+			if ($this->html[$pos] == '>' || $this->html[$pos].$this->html[$pos+1] == '/>') {
+				if ($this->html[$pos] == '/') {
+					$emptyTag = true;
+				}
+				break;
+			}
+
+			$pos_ord = ord($this->html[$pos]);
+			if ($pos_ord >= $a_ord && $pos_ord <= $z_ord) {
+				# attribute name
+				$currAttrib .= $this->html[$pos];
+			} elseif (in_array($this->html[$pos], array(' ', "\t"))) {
+				# drop whitespace
+			} elseif (in_array($this->html[$pos].$this->html[$pos+1], array('="', "='"))) {
+				$pos++;
+				$await = $this->html[$pos]; # single or double quote
+				$pos++;
+				$value = '';
+				while ($pos < $endpos && $this->html[$pos] != $await) {
+					$value .= $this->html[$pos];
+					$pos++;
+				}
+				$attributes[$currAttrib] = $value;
+				$currAttrib = '';
+			} else {
+				$this->invalidTag();
+				return false;
+			}
+		}
+		if (!empty($currAttrib)) {
+			# html 4 allows something like <option selected> instead of <option selected="selected">
+			$attributes[$currAttrib] = $currAttrib;
+		}
+		if (!$isStartTag) {
+			if (!empty($attributes) || $tagName != end($this->openTags)) {
+				# end tags must not contain any attributes
+				# or maybe we did not expect a different tag to be closed
+				$this->invalidTag();
 				return false;
 			}
 			array_pop($this->openTags);
-		}
-		# remove tag name from node copy and trim:
-		$node = substr($node, strlen($tagName));
-		$node = trim($node);
-
-
-		$this->nodeType = 'tag';
-		$this->isStartTag = $isStartTag;
-		$this->isEmptyTag = $isEmptyTag;
-		$this->tagName = $tagName;
-		$this->tagAttributes = array();
-		$this->html = substr($this->html, $closePos+1);
-		$this->isBlockElement = $this->isBlockElement($tagName);
-
-
-		# beautify node, merge whitespaces etc.
-		$this->node = '<';
-		if (!$isStartTag) {
-			if ($this->tagName == 'code' || $this->tagName == 'pre') {
-				# dont truncate whitespaces for <code> or <pre> contents
+			if (in_array($tagName, $this->preformattedTags)) {
 				$this->keepWhitespace--;
 			}
-			$this->node .= '/';
 		}
-		$this->node .= $tagName;
-		if ($isStartTag && !empty($node)) {
-			# get attributes
-			preg_match_all('#(\w+)=("[^"]*"|\'[^\']*\')#', $node, $matches, PREG_SET_ORDER);
-			for ($i = 0, $j = count($matches); $i < $j; $i++) {
-				$this->tagAttributes[$matches[$i][1]] = substr($matches[$i][2], 1, -1);
-				$this->node .= ' '.$matches[$i][1].'='.$matches[$i][2];
-			}
-		}
-		if ($this->useXhtmlSyntax && $isEmptyTag) {
-			$this->node .= ' /';
-		}
-		$this->node .= '>';
+		$pos++;
+		$this->node = substr($this->html, 0, $pos);
+		$this->html = substr($this->html, $pos);
+		$this->tagName = $tagName;
+		$this->tagAttributes = $attributes;
+		$this->isStartTag = $isStartTag;
+		$this->isEmptyTag = $isEmptyTag || in_array($tagName, $this->emptyTags);
+		$this->nodeType = 'tag';
+		$this->isBlockElement = $this->isBlockElement($tagName);
 		return true;
+	}
+	/**
+	 * handle invalid tags
+	 *
+	 * @param void
+	 * @return void
+	 */
+	function invalidTag() {
+		#trigger_error('invalid tag ('.str_replace("\n", ' ', substr($this->html, 0, 25))."...) encountered, will try to handle it gracefully\n".called()."\n", E_USER_NOTICE);
+		$this->html = substr_replace($this->html, '&lt;', 0, 1);
 	}
 	/**
 	 * update all vars and make $this->html shorter
@@ -428,6 +463,7 @@ class parseHTML {
 		$this->node = preg_replace('#\s+#s', ' ', $this->node);
 	}
 }
+
 /**
  * indent a HTML string properly
  *
@@ -468,7 +504,6 @@ function indentHTML($html, $indent = "  ") {
 			$html .= $parser->node;
 
 			if (in_array($parser->nodeType, array('comment', 'pi', 'doctype'))) {
-				var_dump($parser->node);
 				$html .= "\n";
 			} else {
 				$last = false;
@@ -495,6 +530,7 @@ $html = '<?xml version="1.0" encoding="iso-8859-1"?>
 </body>
 </html>
 ';
+#$html = '<a href="asdfasdf"       title=\'asdf\' foo="bar">asdf</a>';
 echo indentHTML($html);
 die();
 */
