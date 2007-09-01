@@ -235,9 +235,12 @@ class parseHTML {
 			$pos++;
 		}
 		# get tagName
+		/**
+		 * TODO: whitelist tag names
+		 */
 		while ($pos < $endpos) {
 			$pos_ord = ord($this->html[$pos]);
-			if ($pos_ord >= $a_ord && $pos_ord <= $z_ord) {
+			if (($pos_ord >= $a_ord && $pos_ord <= $z_ord) || (!empty($tagName) && is_numeric($this->html[$pos]))) {
 				$tagName .= $this->html[$pos];
 				$pos++;
 			} else {
