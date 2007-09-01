@@ -30,9 +30,16 @@ class test {
 
 	public function __construct() {
 		# default params
-		$this->markdownify = new markdownify;
-		$this->show = param('show');
+		$linksAfterEachParagraph = param('links');
+		$bodyWidth = param('width');
+		if ($bodyWidth < 2) {
+			$bodyWidth = 80;
+		}
+		$keepHTML = param('html', true);
+
+		$this->markdownify = new Markdownify($linksAfterEachParagraph, $bodyWidth, $keepHTML);
 		$this->tmpfile = dirname(__FILE__).'/.tmp';
+		$this->show = param('show');
 	}
 	public function memory() {
 		$old = $this->memory;

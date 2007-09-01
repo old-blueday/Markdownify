@@ -112,9 +112,10 @@ function PHPDiff($old,$new)
   return join("\n",$out);
 }
 
-function param($name) {
+function param($name, $default = false) {
 	if (!in_array('--'.$name, $_SERVER['argv']))
-		return false;
+		return $default;
+	reset($_SERVER['argv']);
 	while (each($_SERVER['argv'])) {
 		if (current($_SERVER['argv']) == '--'.$name)
 			break;
@@ -279,6 +280,8 @@ function columns($columns, $width = COL_WIDTH, $h_separator1 = '=', $h_separator
 	$sep_length = mb_strlen($v_separator, 'UTF-8');
 	$col_width = floor(($width - ($num_cols - 1) * $sep_length) / $num_cols);
 
+	$reset_color = reset_cli_color();
+
 	$max_rows = 0;
 
 	# top border
@@ -303,7 +306,7 @@ function columns($columns, $width = COL_WIDTH, $h_separator1 = '=', $h_separator
 
 	for ($i = 0; $i < $max_rows; $i++) {
 		$row = array();
-		foreach ($columns as $col) {
+		foreach ($columns as &$col) {
 			if (!isset($col[$i])) {
 				$col[$i] = '';
 			}
@@ -316,11 +319,13 @@ function columns($columns, $width = COL_WIDTH, $h_separator1 = '=', $h_separator
 				foreach ($matches[0] as $match) {
 					$col_len -= strlen($match);
 				}
-				if ($match == reset_cli_color() && substr($col[$i], -strlen($match)) == $match) {
-					$col[$i] = substr($col[$i], 0, -strlen($match));
-					array_push($row, $col[$i].str_repeat(' ', $col_width - $col_len).end($matches[0]));
-					continue;
+				if (substr($col[$i], -strlen($reset_color)) != $reset_color) {
+					$col[$i+1] = $match.$col[$i+1];
+				} else {
+					$col[$i] = substr($col[$i], 0, -strlen($reset_color));
 				}
+				array_push($row, $col[$i].str_repeat(' ', $col_width - $col_len).$reset_color);
+				continue;
 			}
 
 			array_push($row, $col[$i].str_repeat(' ', $col_width - $col_len));
