@@ -20,9 +20,16 @@ require_once('test/folder.php');
 require_once('test/functions.php');
 require_once('test/test.class.php');
 
-$testCases = new folder('MDTest/Markdown.mdtest');
-
 $test = new test;
+
+if ($tc = param('test')) {
+	if (!file_exists('MDTest/Markdown.mdtest/'.$tc.'.html')) {
+		trigger_error('Testcase '.$tc.' could not be found!', E_USER_ERROR);
+	}
+	$test->run($tc, 'MDTest/Markdown.mdtest/'.$tc);
+	die();
+}
+$testCases = new folder('MDTest/Markdown.mdtest');
 
 while ($testCases->read()) {
 	if (substr($testCases->file, -5) != '.html') {

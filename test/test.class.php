@@ -101,7 +101,7 @@ class test {
 		echo columns(array('html input' => $html, 'original markdown' => $orig, 'parsed markdown' => $parsed))."\n".
 		     "  RAM:\t".$mem."\n".
 			 "  TIME:\t".$time."\n\n";
-		if (param('show_diff')) {
+		if (param('diff')) {
 			echo "  DIFF\n".str_repeat(':', COL_WIDTH)."\n".
 					$diff."\n".str_repeat(':', COL_WIDTH)."\n";
 		}
