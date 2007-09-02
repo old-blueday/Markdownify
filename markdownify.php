@@ -433,9 +433,9 @@ class Markdownify {
 	function handleTag_a() {
 		static $dropped = false;
 		if ($this->parser->isStartTag) {
-			if (empty($this->parser->tagAttributes)) {
+			if (!isset($this->parser->tagAttributes['href'])) {
 				$dropped = true;
-				$this->todo('handle html? dont use empty but check for href and optionally title');
+				$this->handleTagToText();
 				return;
 			}
 			$this->buffer();
@@ -446,6 +446,7 @@ class Markdownify {
 		} else {
 			if ($dropped) {
 				$dropped = false;
+				$this->handleTagToText();
 				return;
 			}
 			$tag = $this->unstack();
@@ -597,7 +598,6 @@ class Markdownify {
 		if ($this->parser->isStartTag) {
 			$this->stack();
 			if (substr($this->output, -strlen("\n".$this->indent)) != "\n".$this->indent) {
-				var_dump(substr($this->output, -10));
 				$this->out("\n".$this->indent);
 			}
 		} else {
@@ -619,7 +619,6 @@ class Markdownify {
 			$this->setLineBreaks(2);
 		} else {
 			if (substr($this->output, -strlen("\n".$this->indent)) != "\n".$this->indent) {
-				var_dump(substr($this->output, -10));
 				$this->out("\n".$this->indent);
 			}
 		}
