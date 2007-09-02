@@ -1,3 +1,4 @@
+#!/usr/bin/php
 <?php
 header('Content-Type:text/plain; charset=utf-8');
 
@@ -20,16 +21,32 @@ require_once('test/test.class.php');
 require_once('markdownify.php');
 require_once('parsehtml.php');
 
+
+switch (param('suite')) {
+	default:
+		$suite = 'Markdown';
+		break;
+	case 2:
+		$suite = 'PHP Markdown';
+		break;
+	case 3:
+		$suite = 'PHP Markdown Extra';
+		break;
+}
+
+define('TESTSUITE', 'MDTest/'.$suite.'.mdtest/');
+
+
 $test = new test;
 
 if ($tc = param('test')) {
-	if (!file_exists('MDTest/Markdown.mdtest/'.$tc.'.html')) {
+	if (!file_exists(TESTSUITE.$tc.'.html')) {
 		trigger_error('Testcase '.$tc.' could not be found!', E_USER_ERROR);
 	}
-	$test->run($tc, 'MDTest/Markdown.mdtest/'.$tc);
+	$test->run($tc, TESTSUITE.$tc);
 	die();
 }
-$testCases = new folder('MDTest/Markdown.mdtest');
+$testCases = new folder(TESTSUITE);
 
 while ($testCases->read()) {
 	if (substr($testCases->file, -5) != '.html') {
