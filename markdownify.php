@@ -60,6 +60,12 @@ class Markdownify {
 	 */
 	var $output;
 	/**
+	 * stack with tags which where not converted to html
+	 *
+	 * @var array<string>
+	 */
+	var $notConverted = array();
+	/**
 	 * skip conversion to markdown
 	 *
 	 * @var bool
@@ -130,6 +136,10 @@ class Markdownify {
 			'href' => 'required',
 			'title' => 'optional',
 		),
+		'strong' => array(),
+		'b' => array(),
+		'em' => array(),
+		'i' => array(),
 		'h1' => array(
 			'id' => 'optional',
 		),
@@ -222,6 +232,7 @@ class Markdownify {
 					break;
 				case 'tag':
 					if ($this->skipConversion) {
+						$this->isMarkdownable(); # update notConverted
 						$this->handleTagToText();
 						continue;
 					}
@@ -267,20 +278,35 @@ class Markdownify {
 			# simply not markdownable
 			return false;
 		}
-		if ($this->keepHTML) {
-			$diff = array_diff(array_keys($this->parser->tagAttributes), array_keys($this->isMarkdownable[$this->parser->tagName]));
-			if (!empty($diff)) {
-				# non markdownable attributes given
+		if ($this->parser->isStartTag) {
+			$return = true;
+			if ($this->keepHTML) {
+				$diff = array_diff(array_keys($this->parser->tagAttributes), array_keys($this->isMarkdownable[$this->parser->tagName]));
+				if (!empty($diff)) {
+					# non markdownable attributes given
+					$return = false;
+				}
+			}
+			if ($return) {
+				foreach ($this->isMarkdownable[$this->parser->tagName] as $attr => $type) {
+					if ($type == 'required' && !isset($this->parser->tagAttributes[$attr])) {
+						# required markdown attribute not given
+						$return = false;
+						break;
+					}
+				}
+			}
+			if (!$return) {
+				array_push($this->notConverted, $this->parser->tagName.'::'.implode('/', $this->parser->openTags));
+			}
+			return $return;
+		} else {
+			if (!empty($this->notConverted) && end($this->notConverted) === $this->parser->tagName.'::'.implode('/', $this->parser->openTags)) {
+				array_pop($this->notConverted);
 				return false;
 			}
+			return true;
 		}
-		foreach ($this->isMarkdownable[$this->parser->tagName] as $attr => $type) {
-			if ($type == 'required' && !isset($this->parser->tagAttributes[$attr])) {
-				# required markdown attribute not given
-				return false;
-			}
-		}
-		return true;
 	}
 	/**
 	 * handle stacked links, acronyms
@@ -296,6 +322,9 @@ class Markdownify {
 				$this->out(' ['.$tag['linkID'].']: '.$tag['href'].(!empty($tag['title']) ? ' "'.$tag['title'].'"' : '')."\n");
 			}
 			$this->stack['a'] = array();
+		}
+		if (!empty($this->stack['img'])) {
+			$this->todo('images?!');
 		}
 	}
 	/**
@@ -328,16 +357,25 @@ class Markdownify {
 				if ($this->parser->isStartTag) {
 					$this->flushLinebreaks();
 					$this->out($this->parser->node."\n".$this->indent);
-
-					$this->skipConversion = implode('/', $this->parser->openTags);
+					if (!$this->skipConversion) {
+						$this->skipConversion = $this->parser->tagName.'::'.implode('/', $this->parser->openTags);
+					}
 					if (!$this->parser->isEmptyTag) {
 						$this->indent('  ');
+					} else {
+						$this->setLineBreaks(1);
 					}
 				} else {
 					$this->indent('  ');
 					$this->out("\n".$this->indent.$this->parser->node);
-					$this->setLineBreaks(2);
-					if ($this->skipConversion == implode('/', $this->parser->openTags)) {
+
+					if ($this->parser->tagName == 'li') {
+						$this->setLineBreaks(1);
+					} else {
+						$this->setLineBreaks(2);
+					}
+
+					if ($this->skipConversion == $this->parser->tagName.'::'.implode('/', $this->parser->openTags)) {
 						$this->skipConversion = false;
 					}
 				}
@@ -369,6 +407,31 @@ class Markdownify {
 		}
 		$this->notice('what has to be escaped? see "Backslash escapes" testcase');
 		$this->out($this->parser->node);
+	}
+	/**
+	 * handle <em> and <i> tags
+	 *
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_em() {
+		$this->notice('make it configurable with either * or _');
+		$this->out('*');
+	}
+	function handleTag_i() {
+		$this->handleTag_em();
+	}
+	/**
+	 * handle <strong> and <b> tags
+	 *
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_strong() {
+		$this->out('**');
+	}
+	function handleTag_b() {
+		$this->out('**');
 	}
 	/**
 	 * handle <h1> tags
@@ -460,27 +523,20 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_a() {
-		static $dropped = false;
 		if ($this->parser->isStartTag) {
-			if (!isset($this->parser->tagAttributes['href'])) {
-				$dropped = true;
-				$this->handleTagToText();
-				return;
-			}
 			$this->buffer();
 			if (!isset($this->parser->tagAttributes['title'])) {
 				$this->parser->tagAttributes['title'] = '';
 			}
 			$this->stack();
 		} else {
-			if ($dropped) {
-				$dropped = false;
-				$this->handleTagToText();
+			$tag = $this->unstack();
+			$buffer = $this->unbuffer();
+
+			if (empty($tag['href']) && empty($tag['title'])) {
+				$this->out('['.$buffer.']()');
 				return;
 			}
-			$tag = $this->unstack();
-
-			$buffer = $this->unbuffer();
 			if ($buffer == $tag['href'] && empty($tag['title'])) {
 				# <http://example.com>
 				$this->out('<'.$buffer.'>');
@@ -596,10 +652,8 @@ class Markdownify {
 	function handleTag_pre() {
 		$this->indent('    ');
 		if (!$this->parser->isStartTag) {
-			#var_dump(substr($this->output, -10));
-			#die();
 			$this->output = rtrim($this->output);
-			$this->setLineBreaks(1);
+			$this->setLineBreaks(2);
 		} else {
 			$this->parser->html = ltrim($this->parser->html);
 		}
@@ -716,6 +770,9 @@ class Markdownify {
 	 * @return array
 	 */
 	function unstack() {
+		if (!isset($this->stack[$this->parser->tagName]) || !is_array($this->stack[$this->parser->tagName])) {
+			trigger_error('somebody set us up the bomb', E_USER_ERROR);
+		}
 		return array_pop($this->stack[$this->parser->tagName]);
 	}
 	/**
@@ -850,6 +907,10 @@ class Markdownify {
 
 		print("\nnotice: ".($message ? $message : '')."\n".$called."\n\n");
 		array_push($already_called, $called);
+	}
+	function debug_pos($len = 25) {
+		var_dump(substr($this->output, -$len));
+		var_dump(substr($this->parser->html, 0, $len));
 	}
 }
 function dump() {
