@@ -350,13 +350,22 @@ class Markdownify {
 				$this->setLineBreaks(2);
 			}
 		} else {
+			# dont convert to markdown inside this tag
+			/** TODO: markdown extra **/
+			if ($this->parser->isStartTag) {
+				if (!$this->skipConversion) {
+					$this->skipConversion = $this->parser->tagName.'::'.implode('/', $this->parser->openTags);
+				}
+			} else {
+				if ($this->skipConversion == $this->parser->tagName.'::'.implode('/', $this->parser->openTags)) {
+					$this->skipConversion = false;
+				}
+			}
+
 			if ($this->parser->isBlockElement) {
 				if ($this->parser->isStartTag) {
 					$this->flushLinebreaks();
 					$this->out($this->parser->node."\n".$this->indent);
-					if (!$this->skipConversion) {
-						$this->skipConversion = $this->parser->tagName.'::'.implode('/', $this->parser->openTags);
-					}
 					if (!$this->parser->isEmptyTag) {
 						$this->indent('  ');
 					} else {
@@ -370,10 +379,6 @@ class Markdownify {
 						$this->setLineBreaks(1);
 					} else {
 						$this->setLineBreaks(2);
-					}
-
-					if ($this->skipConversion == $this->parser->tagName.'::'.implode('/', $this->parser->openTags)) {
-						$this->skipConversion = false;
 					}
 				}
 			} else {
