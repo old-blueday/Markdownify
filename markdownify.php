@@ -127,47 +127,50 @@ class Markdownify {
 		'code' => array(),
 		'pre' => array(),
 		'a' => array(
-			'href',
-			'title',
+			'href' => 'required',
+			'title' => 'optional',
 		),
 		'h1' => array(
-			'id',
+			'id' => 'optional',
 		),
 		'h2' => array(
-			'id',
+			'id' => 'optional',
 		),
 		'h3' => array(
-			'id',
+			'id' => 'optional',
 		),
 		'h4' => array(
-			'id',
+			'id' => 'optional',
 		),
 		'h5' => array(
-			'id',
+			'id' => 'optional',
 		),
 		'h6' => array(
-			'id',
+			'id' => 'optional',
 		),
 		'img' => array(
-			'src',
-			'alt',
-			'title',
+			'src' => 'required',
+			'alt' => 'optional',
+			'title' => 'optional',
 		),
 		'table' => array(),
 		'th' => array(
-			'align',
+			'align' => 'optional',
 		),
 		'td' => array(
-			'align',
+			'align' => 'optional',
 		),
+		/** TODO: markdownify_extra **/
 		'sup' => array(
-			'id',
+			'id' => 'optional',
 		),
+		/** TODO: markdownify_extra **/
 		'abbr' => array(
-			'title',
+			'title' => 'required',
 		),
+		/** TODO: markdownify_extra **/
 		'acronym' => array(
-			'title',
+			'title' => 'required',
 		),
 		'hr' => array(),
 	);
@@ -236,7 +239,7 @@ class Markdownify {
 							$this->output = rtrim($this->output);
 						}
 					}
-					if (isset($this->isMarkdownable[$this->parser->tagName])) {
+					if ($this->isMarkdownable()) {
 						call_user_func(array(&$this, 'handleTag_'.$this->parser->tagName));
 					} else {
 						$this->handleTagToText();
@@ -254,6 +257,32 @@ class Markdownify {
 		$this->output = rtrim(str_replace('&amp;', '&', str_replace('&lt;', '<', str_replace('&gt;', '>', $this->output))));
 	}
 	/**
+	 * check if current tag can be converted to Markdown
+	 *
+	 * @param void
+	 * @return bool
+	 */
+	function isMarkdownable() {
+		if (!isset($this->isMarkdownable[$this->parser->tagName])) {
+			# simply not markdownable
+			return false;
+		}
+		if ($this->keepHTML) {
+			$diff = array_diff(array_keys($this->parser->tagAttributes), array_keys($this->isMarkdownable[$this->parser->tagName]));
+			if (!empty($diff)) {
+				# non markdownable attributes given
+				return false;
+			}
+		}
+		foreach ($this->isMarkdownable[$this->parser->tagName] as $attr => $type) {
+			if ($type == 'required' && !isset($this->parser->tagAttributes[$attr])) {
+				# required markdown attribute not given
+				return false;
+			}
+		}
+		return true;
+	}
+	/**
 	 * handle stacked links, acronyms
 	 *
 	 * @param void
@@ -261,7 +290,7 @@ class Markdownify {
 	 */
 	function handleStacked() {
 		# links
-		$this->out("\n\n\n");
+		$this->out("\n\n");
 		if (!empty($this->stack['a'])) {
 			foreach ($this->stack['a'] as $tag) {
 				$this->out(' ['.$tag['linkID'].']: '.$tag['href'].(!empty($tag['title']) ? ' "'.$tag['title'].'"' : '')."\n");
@@ -567,8 +596,10 @@ class Markdownify {
 	function handleTag_pre() {
 		$this->indent('    ');
 		if (!$this->parser->isStartTag) {
+			#var_dump(substr($this->output, -10));
+			#die();
 			$this->output = rtrim($this->output);
-			$this->setLineBreaks(2);
+			$this->setLineBreaks(1);
 		} else {
 			$this->parser->html = ltrim($this->parser->html);
 		}
@@ -656,7 +687,7 @@ class Markdownify {
 	 */
 	function handleTag_hr() {
 		$this->notice('configurable hr');
-		$this->out(str_repeat(' ', $this->bodyWidth / 2 - 3).'* * *');
+		$this->out('* * *');
 		$this->setLineBreaks(2);
 	}
 	/**
