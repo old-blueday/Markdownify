@@ -219,7 +219,9 @@ class Markdownify {
 					/* drop */
 					break;
 				case 'comment':
-					$this->handleComment();
+					if ($this->keepHTML) {
+						$this->handleComment();
+					}
 					break;
 				case 'text':
 					$this->handleText();
