@@ -276,7 +276,9 @@ class Markdownify {
 	 * @return void
 	 */
 	function flushLinebreaks() {
-		$this->out(str_repeat("\n".$this->indent, $this->lineBreaks));
+		if (!empty($this->output)) {
+			$this->out(str_repeat("\n".$this->indent, $this->lineBreaks));
+		}
 		$this->lineBreaks = 0;
 	}
 	/**
@@ -310,6 +312,8 @@ class Markdownify {
 						$this->skipConversion = false;
 					}
 				}
+			} else {
+				$this->out($this->parser->node);
 			}
 		}
 	}
@@ -320,8 +324,9 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleComment() {
+		$this->flushLinebreaks();
 		$this->out($this->parser->node);
-		$this->setLineBreaks(1);
+		$this->setLineBreaks(2);
 	}
 	/**
 	 * handle plain text
@@ -333,6 +338,7 @@ class Markdownify {
 		if ($this->hasParent('pre') && strstr($this->parser->node, "\n")) {
 			$this->parser->node = str_replace("\n", "\n".$this->indent, $this->parser->node);
 		}
+		$this->notice('what has to be escaped? see "Backslash escapes" testcase');
 		$this->out($this->parser->node);
 	}
 	/**
@@ -532,9 +538,14 @@ class Markdownify {
 		} else {
 			$buffer = $this->unbuffer();
 			preg_match_all('#`+#', $buffer, $matches);
-			$this->todo('only use as many backticks as needed');
 			if (!empty($matches[0])) {
 				rsort($matches[0]);
+
+				if (count($matches[0]) > 1) {
+					# for -> break
+					var_dump($matches);
+					$this->todo('only use as many backticks as needed');
+				}
 				$len = strlen($matches[0][0])+1;
 			} else {
 				$len = 1;
@@ -556,7 +567,7 @@ class Markdownify {
 		$this->indent('    ');
 		if (!$this->parser->isStartTag) {
 			$this->output = rtrim($this->output);
-			$this->setLineBreaks(1);
+			$this->setLineBreaks(2);
 		} else {
 			$this->parser->html = ltrim($this->parser->html);
 		}
