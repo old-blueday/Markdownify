@@ -275,7 +275,9 @@ function color_lines($str, $line_start, $line_end, $color) {
  * @author Milian Wolff (<mail@milianw.de>, <http://milianw.de>)
  */
 function columns($columns, $width = COL_WIDTH, $h_separator1 = '=', $h_separator2 = '-', $v_separator = ' | ') {
-	$h_separator1 = str_repeat($h_separator1, $width);
+	if ($h_separator1 !== false) {
+		$h_separator1 = str_repeat($h_separator1, $width);
+	}
 	$num_cols = count($columns);
 	$sep_length = mb_strlen($v_separator, 'UTF-8');
 	$col_width = floor(($width - ($num_cols - 1) * $sep_length) / $num_cols);
@@ -295,14 +297,18 @@ function columns($columns, $width = COL_WIDTH, $h_separator1 = '=', $h_separator
 		$max_rows = max($max_rows, count($columns[$header]));
 
 		# build centered header
-		$header_width = mb_strlen($header, 'UTF-8');
-		$l_padding = floor(($col_width - $header_width) / 2);
-		$r_padding = $col_width - $header_width - $l_padding;
-		array_push($headers, str_repeat(' ', $l_padding).$header.str_repeat(' ', $r_padding));
+		if (is_string($header)) {
+			$header_width = mb_strlen($header, 'UTF-8');
+			$l_padding = floor(($col_width - $header_width) / 2);
+			$r_padding = $col_width - $header_width - $l_padding;
+			array_push($headers, str_repeat(' ', $l_padding).$header.str_repeat(' ', $r_padding));
+		}
 	}
 
 	# header with border below
-	$return .= implode($v_separator, $headers)."\n".implode($v_separator, $headers_tr)."\n";
+	if (!empty($headers)) {
+		$return .= implode($v_separator, $headers)."\n".implode($v_separator, $headers_tr)."\n";
+	}
 
 	for ($i = 0; $i < $max_rows; $i++) {
 		$row = array();

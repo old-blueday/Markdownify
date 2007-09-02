@@ -24,7 +24,6 @@ class test {
 	var $memory = 0;
 	var $time = 0;
 	var $show;
-	var $tmpfile;
 
 	var $markdownify;
 
@@ -37,19 +36,26 @@ class test {
 		}
 		$keepHTML = param('html', true);
 
+		if (param('extra')) {
+			require_once('MDTest/Implementations/markdown-extra.php');
+			echo 'Using '.MARKDOWN_PARSER_CLASS.' V'.MARKDOWNEXTRA_VERSION."\n\n";
+		} else {
+			require_once('MDTest/Implementations/markdown.php');
+			echo 'Using '.MARKDOWN_PARSER_CLASS.' V'.MARKDOWN_VERSION."\n\n";
+		}
+
 		$this->markdownify = new Markdownify($linksAfterEachParagraph, $bodyWidth, $keepHTML);
-		$this->tmpfile = dirname(__FILE__).'/.tmp';
 		$this->show = param('show');
 	}
 	public function memory() {
 		$old = $this->memory;
-		$this->memory = memory_get_usage(true);
-		return $this->memory - $old;
+		$this->memory = xdebug_memory_usage(true);
+		return floatval($this->memory - $old);
 	}
 	public function time() {
 		$old = $this->time;
 		$this->time = microtime(true);
-		return $this->time - $old;
+		return floatval($this->time - $old);
 	}
 	public function dump($mixed) {
 		$args = func_get_args();
@@ -88,31 +94,37 @@ class test {
 			return;
 		}
 		echo "running testcase: $testcase ($path)\n".str_repeat('=', COL_WIDTH)."\n";
-		$orig = file_get_contents($path.'.text');
 		$html = file_get_contents($path.'.html');
 		$this->memory();
 		$this->time();
 		$parsed = $this->markdownify->parseString($html);
-		$mem = $this->memory();
-		$time = $this->time();
-		#$diff = PHPDiff($orig, $parsed);
+		$time_parsed = $this->time();
+		$mem_parsed = $this->memory();
+		if (param('diff-markdown')) {
+			$orig = file_get_contents($path.'.text');
+			$diff = PHPDiff($orig, $parsed);
+			highlight_diff(&$orig, &$parsed, $diff);
+			echo columns(array('html input' => $html, 'original markdown' => $orig, 'parsed markdown' => $parsed));
 
-		file_put_contents($this->tmpfile, $parsed);
-		$diff = shell_exec('diff "'.$path.'.text" "'.$this->tmpfile.'"');
-		#die($diff);
-		highlight_diff(&$orig, &$parsed, $diff);
-		#echo $orig."\n---\n";
-		#echo $parsed."\n---\n";
-		#echo $diff."\n---\n";
-		#die();
-		echo columns(array('html input' => $html, 'original markdown' => $orig, 'parsed markdown' => $parsed))."\n".
-		     "  RAM:\t".$mem."\n".
-			 "  TIME:\t".$time."\n\n";
+			echo "\n".
+				"  RAM:\t".$mem_parsed."\n".
+				"  TIME:\t".$time_parsed."\n\n";
+		} else {
+			$this->memory();
+			$this->time();
+			$new = Markdown($parsed);
+			$time_md = $this->time();
+			$mem_md = $this->memory();
+			$diff = PHPDiff($html, $new);
+			highlight_diff(&$html, &$new, $diff);
+			echo columns(array('html input' => $html, 'generated markdown' => $parsed, 'html output' => $new));
+			echo columns(array('', "RAMDIFF: \t$mem_parsed bytes\nTIME:    \t$time_parsed seconds", "RAMDIFF: \t$mem_md bytes\nTIME:    \t$time_md seconds"), COL_WIDTH, false);
+		}
 		if (param('diff')) {
-			echo "  DIFF\n".str_repeat(':', COL_WIDTH)."\n".
+			echo "\nDIFF\n".str_repeat(':', COL_WIDTH)."\n".
 					$diff."\n".str_repeat(':', COL_WIDTH)."\n";
 		}
-		if (!$this->show) {
+		if (!$this->show && !param('test')) {
 			$this->awaitInput();
 		}
 	}
