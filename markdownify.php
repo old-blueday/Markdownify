@@ -93,7 +93,7 @@ class Markdownify {
 	/**
 	 * constructor, set options, setup parser
 	 */
-	function Markdownify($linksAfterEachParagraph = false, $bodyWidth = 0, $keepHTML = true) {
+	function Markdownify($linksAfterEachParagraph = false, $bodyWidth = false, $keepHTML = true) {
 		$this->linksAfterEachParagraph = $linksAfterEachParagraph;
 		$this->keepHTML = $keepHTML;
 		$this->bodyWidth = $bodyWidth;
@@ -213,15 +213,20 @@ class Markdownify {
 		# drop tags
 		$this->parser->html = preg_replace('#<('.implode('|', $this->drop).')[^>]*>.*</\\1>#sU', '', $this->parser->html);
 		while ($this->parser->nextNode()) {
+			if ($this->bodyWidth && $this->parser->isStartTag && $this->parser->isBlockElement && !$this->parser->isEmptyTag && !$this->parser->keepWhitespace) {
+				# buffer to wordwraper later on (see below switch)
+				$this->buffer();
+			}
 			switch ($this->parser->nodeType) {
 				case 'doctype':
 				case 'pi':
-					/* drop */
-					break;
 				case 'comment':
 					if ($this->keepHTML) {
-						$this->handleComment();
+						$this->flushLinebreaks();
+						$this->out($this->parser->node);
+						$this->setLineBreaks(2);
 					}
+					# else drop
 					break;
 				case 'text':
 					$this->handleText();
@@ -258,6 +263,10 @@ class Markdownify {
 				default:
 					trigger_error('invalid node type', E_USER_ERROR);
 					break;
+			}
+			if ($this->bodyWidth && !$this->parser->isStartTag && $this->parser->isBlockElement && !$this->parser->isEmptyTag && !$this->parser->keepWhitespace) {
+				# wordwrap to given width
+				$this->out(wordwrap($this->unbuffer(), $this->bodyWidth, "\n".$this->indent, false));
 			}
 		}
 		# end parsing, handle stacked tags
@@ -392,17 +401,6 @@ class Markdownify {
 				$this->out($this->parser->node);
 			}
 		}
-	}
-	/**
-	 * handle comments
-	 *
-	 * @param void
-	 * @return void
-	 */
-	function handleComment() {
-		$this->flushLinebreaks();
-		$this->out($this->parser->node);
-		$this->setLineBreaks(2);
 	}
 	/**
 	 * handle plain text
