@@ -323,9 +323,6 @@ class Markdownify {
 			}
 			$this->stack['a'] = array();
 		}
-		if (!empty($this->stack['img'])) {
-			$this->todo('images?!');
-		}
 	}
 	/**
 	 * flush enqued linebreaks
@@ -431,7 +428,7 @@ class Markdownify {
 		$this->out('**');
 	}
 	function handleTag_b() {
-		$this->out('**');
+		$this->handleTag_strong();
 	}
 	/**
 	 * handle <h1> tags
@@ -627,19 +624,19 @@ class Markdownify {
 			if (!empty($matches[0])) {
 				rsort($matches[0]);
 
-				if (count($matches[0]) > 1) {
-					# for -> break
-					var_dump($matches);
-					$this->todo('only use as many backticks as needed');
+				$ticks = '`';
+				while (true) {
+					if (!in_array($ticks, $matches[0])) {
+						break;
+					}
+					$ticks .= '`';
 				}
-				$len = strlen($matches[0][0])+1;
 			} else {
-				$len = 1;
+				$ticks = '`';
 			}
 			if ($buffer[0] == '`' || substr($buffer, -1) == '`') {
 				$buffer = ' '.$buffer.' ';
 			}
-			$ticks = str_repeat('`', $len);
 			$this->out($ticks.$buffer.$ticks);
 		}
 	}
