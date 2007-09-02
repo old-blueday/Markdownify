@@ -91,12 +91,6 @@ class Markdownify {
 	 */
 	var $linksAfterEachParagraph = false;
 	/**
-	 * output error messages
-	 *
-	 * @var bool
-	 */
-	var $debug = false;
-	/**
 	 * constructor, set options, setup parser
 	 */
 	function Markdownify($linksAfterEachParagraph = false, $bodyWidth = 0, $keepHTML = true) {
@@ -252,6 +246,9 @@ class Markdownify {
 					}
 					if ($this->isMarkdownable()) {
 						call_user_func(array(&$this, 'handleTag_'.$this->parser->tagName));
+						if ($this->linksAfterEachParagraph && $this->parser->isBlockElement && !$this->parser->isStartTag) {
+							$this->handleStacked();
+						}
 					} else {
 						$this->handleTagToText();
 					}
@@ -263,6 +260,7 @@ class Markdownify {
 		}
 		# end parsing, handle stacked tags
 		$this->handleStacked();
+		$this->stack = array();
 
 		### cleanup
 		$this->output = rtrim(str_replace('&amp;', '&', str_replace('&lt;', '<', str_replace('&gt;', '>', $this->output))));
@@ -316,12 +314,19 @@ class Markdownify {
 	 */
 	function handleStacked() {
 		# links
-		$this->out("\n\n");
-		if (!empty($this->stack['a'])) {
-			foreach ($this->stack['a'] as $tag) {
-				$this->out(' ['.$tag['linkID'].']: '.$tag['href'].(!empty($tag['title']) ? ' "'.$tag['title'].'"' : '')."\n");
+		if (empty($this->stack['a'])) {
+			return;
+		}
+		$out = array();
+		foreach ($this->stack['a'] as $k => $tag) {
+			if (!isset($tag['unstacked'])) {
+				array_push($out, ' ['.$tag['linkID'].']: '.$tag['href'].(!empty($tag['title']) ? ' "'.$tag['title'].'"' : ''));
+				$tag['unstacked'] = true;
+				$this->stack['a'][$k] = $tag;
 			}
-			$this->stack['a'] = array();
+		}
+		if (!empty($out)) {
+			$this->out("\n\n".implode("\n", $out));
 		}
 	}
 	/**
@@ -407,7 +412,7 @@ class Markdownify {
 		if ($this->hasParent('pre') && strstr($this->parser->node, "\n")) {
 			$this->parser->node = str_replace("\n", "\n".$this->indent, $this->parser->node);
 		}
-		$this->notice('what has to be escaped? see "Backslash escapes" testcase');
+		#$this->notice('what has to be escaped? see "Backslash escapes" testcase');
 		$this->out($this->parser->node);
 	}
 	/**
@@ -417,7 +422,7 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_em() {
-		$this->notice('make it configurable with either * or _');
+		#$this->notice('make it configurable with either * or _');
 		$this->out('*');
 	}
 	function handleTag_i() {
@@ -501,7 +506,7 @@ class Markdownify {
 	 */
 	function handleHeader($level) {
 		if ($this->parser->isStartTag) {
-			$this->notice('support setex header styles (=== and ----) via setting');
+			#$this->notice('support setex header styles (=== and ----) via setting');
 			$this->out(str_repeat('#', $level).' ');
 		} else {
 			$this->setLineBreaks(2);
@@ -549,7 +554,7 @@ class Markdownify {
 			if (substr($hrefDecoded, 0, 7) == 'mailto:' && 'mailto:'.$bufferDecoded == $hrefDecoded) {
 				# <mail@example.com>
 				$this->out('<'.$bufferDecoded.'>');
-				$this->notice('handle inline links with titles');
+				#$this->notice('handle inline links with titles');
 			} else {
 				# [This link][id]
 				foreach ($this->stack['a'] as &$tag2) {
@@ -669,7 +674,7 @@ class Markdownify {
 	function handleTag_blockquote() {
 		if (!$this->parser->isStartTag) {
 			if (substr($this->output, -2) == "\n>") {
-				$this->notice('what\'s this?');
+				#$this->notice('what\'s this?');
 				$this->output = substr($this->output, 0, -2);
 			}
 		}
@@ -728,7 +733,7 @@ class Markdownify {
 			if ($this->parser->isStartTag) {
 				$this->out('*  ');
 			}
-			$this->notice('configurable list char: * - +');
+			#$this->notice('configurable list char: * - +');
 			$this->indent('    ', false);
 		}
 		if (!$this->parser->isStartTag) {
@@ -742,7 +747,7 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_hr() {
-		$this->notice('configurable hr');
+		#$this->notice('configurable hr');
 		$this->out('* * *');
 		$this->setLineBreaks(2);
 	}
