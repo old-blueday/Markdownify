@@ -142,7 +142,8 @@ class parseHTML {
 			$token = substr($this->html, 0, 9);
 			if (substr($token, 0, 2) == '<?') {
 				# xml prolog or other pi's
-				trigger_error('this might need some work', E_USER_NOTICE);
+				/** TODO **/
+				#trigger_error('this might need some work', E_USER_NOTICE);
 				$pos = strpos($this->html, '>');
 				$this->setNode('pi', $pos + 1);
 				return true;
