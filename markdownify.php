@@ -140,48 +140,50 @@ class Markdownify {
 		'b' => array(),
 		'em' => array(),
 		'i' => array(),
-		'h1' => array(
-			'id' => 'optional',
-		),
-		'h2' => array(
-			'id' => 'optional',
-		),
-		'h3' => array(
-			'id' => 'optional',
-		),
-		'h4' => array(
-			'id' => 'optional',
-		),
-		'h5' => array(
-			'id' => 'optional',
-		),
-		'h6' => array(
-			'id' => 'optional',
-		),
 		'img' => array(
 			'src' => 'required',
 			'alt' => 'optional',
 			'title' => 'optional',
 		),
-		'table' => array(),
-		'th' => array(
-			'align' => 'optional',
+		/** TODO: markdownify_extra **/
+		'h1' => array(
+			#'id' => 'optional',
 		),
-		'td' => array(
-			'align' => 'optional',
+		'h2' => array(
+			#'id' => 'optional',
+		),
+		'h3' => array(
+			#'id' => 'optional',
+		),
+		'h4' => array(
+			#'id' => 'optional',
+		),
+		'h5' => array(
+			#'id' => 'optional',
+		),
+		'h6' => array(
+			#'id' => 'optional',
 		),
 		/** TODO: markdownify_extra **/
-		'sup' => array(
-			'id' => 'optional',
-		),
+		#'table' => array(),
+		#'th' => array(
+		#	'align' => 'optional',
+		#),
+		#'td' => array(
+		#	'align' => 'optional',
+		#),
 		/** TODO: markdownify_extra **/
-		'abbr' => array(
-			'title' => 'required',
-		),
+		#'sup' => array(
+		#	'id' => 'optional',
+		#),
 		/** TODO: markdownify_extra **/
-		'acronym' => array(
-			'title' => 'required',
-		),
+		#'abbr' => array(
+		#	'title' => 'required',
+		#),
+		/** TODO: markdownify_extra **/
+		#'acronym' => array(
+		#	'title' => 'required',
+		#),
 		'hr' => array(),
 	);
 	/**
@@ -404,13 +406,15 @@ class Markdownify {
 		} else {
 			# dont convert to markdown inside this tag
 			/** TODO: markdown extra **/
-			if ($this->parser->isStartTag) {
-				if (!$this->skipConversion) {
-					$this->skipConversion = $this->parser->tagName.'::'.implode('/', $this->parser->openTags);
-				}
-			} else {
-				if ($this->skipConversion == $this->parser->tagName.'::'.implode('/', $this->parser->openTags)) {
-					$this->skipConversion = false;
+			if (!$this->parser->isEmptyTag) {
+				if ($this->parser->isStartTag) {
+					if (!$this->skipConversion) {
+						$this->skipConversion = $this->parser->tagName.'::'.implode('/', $this->parser->openTags);
+					}
+				} else {
+					if ($this->skipConversion == $this->parser->tagName.'::'.implode('/', $this->parser->openTags)) {
+						$this->skipConversion = false;
+					}
 				}
 			}
 
