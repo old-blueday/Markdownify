@@ -31,9 +31,6 @@ class test {
 		# default params
 		$linksAfterEachParagraph = param('links');
 		$bodyWidth = param('width');
-		if ($bodyWidth < 2) {
-			$bodyWidth = 80;
-		}
 		$keepHTML = param('html', true);
 
 		if (param('extra')) {
@@ -117,6 +114,12 @@ class test {
 			$mem_md = $this->memory();
 			$diff = PHPDiff($html, $new);
 			highlight_diff(&$html, &$new, $diff);
+
+			if (param('whitespace')) {
+				$html = str_replace(array("\t", ' '), array('..', '.'), $html);
+				$new = str_replace(array("\t", ' '), array('..', '.'), $new);
+				$parsed = str_replace(array("\t", ' '), array('..', '.'), $parsed);
+			}
 			echo columns(array('html input' => $html, 'generated markdown' => $parsed, 'html output' => $new));
 			echo columns(array('', "RAMDIFF: \t$mem_parsed bytes\nTIME:    \t$time_parsed seconds", "RAMDIFF: \t$mem_md bytes\nTIME:    \t$time_md seconds"), COL_WIDTH, false);
 		}

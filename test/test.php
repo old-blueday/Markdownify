@@ -1,8 +1,6 @@
 #!/usr/bin/php
 <?php
-header('Content-Type:text/plain; charset=utf-8');
-
-define('COL_WIDTH', 180);
+define('COL_WIDTH', 178);
 define('DIFF_FGCOLOR_D', 'white');
 define('DIFF_BGCOLOR_D', 'red');
 define('DIFF_FGCOLOR_A', 'white');
@@ -11,7 +9,6 @@ define('DIFF_FGCOLOR_C', 'white');
 define('DIFF_BGCOLOR_C', 'brown');
 
 error_reporting(E_ALL);
-ini_set('html_errors', false);
 
 chdir(dirname(__FILE__).'/..');
 
