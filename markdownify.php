@@ -85,6 +85,12 @@ class Markdownify {
 	 */
 	var $bodyWidth = 0;
 	/**
+	 * minimum body width
+	 *
+	 * @var int
+	 */
+	var $minBodyWidth = 25;
+	/**
 	 * display links after each paragraph
 	 *
 	 * @var bool
@@ -202,6 +208,19 @@ class Markdownify {
 		'form',
 	);
 	/**
+	 * Markdown indents which could be wrapped
+	 * @note: use strings in regex format
+	 *
+	 * @var array<string>
+	 */
+	var $wrappableIndents = array(
+		'\*   ', # ul
+		'\d.  ', # ol
+		'\d\d. ', # ol
+		'> ', # blockquote
+		'', # p
+	);
+	/**
 	 * iterate through the nodes and decide what we
 	 * shall do with the current node
 	 *
@@ -213,10 +232,6 @@ class Markdownify {
 		# drop tags
 		$this->parser->html = preg_replace('#<('.implode('|', $this->drop).')[^>]*>.*</\\1>#sU', '', $this->parser->html);
 		while ($this->parser->nextNode()) {
-			if ($this->bodyWidth && $this->parser->isStartTag && $this->parser->isBlockElement && !$this->parser->isEmptyTag && !$this->parser->keepWhitespace) {
-				# buffer to wordwraper later on (see below switch)
-				$this->buffer();
-			}
 			switch ($this->parser->nodeType) {
 				case 'doctype':
 				case 'pi':
@@ -264,17 +279,38 @@ class Markdownify {
 					trigger_error('invalid node type', E_USER_ERROR);
 					break;
 			}
-			if ($this->bodyWidth && !$this->parser->isStartTag && $this->parser->isBlockElement && !$this->parser->isEmptyTag && !$this->parser->keepWhitespace) {
-				# wordwrap to given width
-				$this->out(wordwrap($this->unbuffer(), $this->bodyWidth, "\n".$this->indent, false));
-			}
+		}
+		### cleanup
+		$this->output = rtrim(str_replace('&amp;', '&', str_replace('&lt;', '<', str_replace('&gt;', '>', $this->output))));
+		if ($this->bodyWidth) {
+			$this->wrapOutput();
 		}
 		# end parsing, handle stacked tags
 		$this->handleStacked();
 		$this->stack = array();
 
-		### cleanup
-		$this->output = rtrim(str_replace('&amp;', '&', str_replace('&lt;', '<', str_replace('&gt;', '>', $this->output))));
+	}
+	/**
+	 * wordwrap output to given length
+	 *
+	 * @param void
+	 * @return void
+	 */
+	function wrapOutput() {
+		/** TODO: should be extensible **/
+		/** TODO: links, code tags, html tags and possibly more must not be wrapped **/
+		#die('#^((?:'.implode('|', $this->wrappableIndents).')+)(?!    ).{'.intval($this->bodyWidth).',}$#m');
+		$this->output = preg_replace_callback('#^((?:'.implode('|', $this->wrappableIndents).')+)(?!    ).{'.intval($this->bodyWidth).',}$#m', array(&$this, '_wrapOutput'), $this->output);
+		return;
+	}
+	/**
+	 * wrapping callback
+	 *
+	 * @param array $matches
+	 * @return string
+	 */
+	function _wrapOutput($matches) {
+		return wordwrap($matches[0], $this->bodyWidth - strlen($matches[1]), "\n".$matches[1], false);
 	}
 	/**
 	 * check if current tag can be converted to Markdown
@@ -412,7 +448,9 @@ class Markdownify {
 		if ($this->hasParent('pre') && strstr($this->parser->node, "\n")) {
 			$this->parser->node = str_replace("\n", "\n".$this->indent, $this->parser->node);
 		}
-		#$this->notice('what has to be escaped? see "Backslash escapes" testcase');
+		if (!$this->hasParent('code') && !$this->hasParent('pre')) {
+			#$this->notice('what has to be escaped? see "Backslash escapes" testcase');
+		}
 		$this->out($this->parser->node);
 	}
 	/**
@@ -672,12 +710,6 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_blockquote() {
-		if (!$this->parser->isStartTag) {
-			if (substr($this->output, -2) == "\n>") {
-				#$this->notice('what\'s this?');
-				$this->output = substr($this->output, 0, -2);
-			}
-		}
 		$this->indent('> ');
 	}
 	/**
@@ -731,7 +763,7 @@ class Markdownify {
 			$this->indent('    ', false);
 		} else {
 			if ($this->parser->isStartTag) {
-				$this->out('*  ');
+				$this->out('*   ');
 			}
 			#$this->notice('configurable list char: * - +');
 			$this->indent('    ', false);
