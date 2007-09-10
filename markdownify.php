@@ -106,6 +106,9 @@ class Markdownify {
 
 		require_once(dirname(__FILE__).'/parsehtml.php');
 		$this->parser = new parseHTML;
+
+		# we don't have to do this every time
+		$this->escapeInText = implode('|', $this->escapeInText);
 	}
 	/**
 	 * parse a HTML string
@@ -223,6 +226,19 @@ class Markdownify {
 		'', # p
 	);
 	/**
+	 * list of chars which have to be escaped in normal text
+	 * @note: use strings in regex format
+	 *
+	 * @var array <string>
+	 *
+	 * TODO: what's with block chars / sequences at the beginning of a block?
+	 */
+	var $escapeInText = array(
+		'\*', # emphasis
+		'_', # emphasis
+		'`', # code
+	);
+	/**
 	 * iterate through the nodes and decide what we
 	 * shall do with the current node
 	 *
@@ -299,11 +315,8 @@ class Markdownify {
 	 * @return void
 	 */
 	function wrapOutput() {
-		/** TODO: should be extensible **/
 		/** TODO: links, code tags, html tags and possibly more must not be wrapped **/
-		#die('#^((?:'.implode('|', $this->wrappableIndents).')+)(?!    ).{'.intval($this->bodyWidth).',}$#m');
 		$this->output = preg_replace_callback('#^((?:'.implode('|', $this->wrappableIndents).')+)(?!    ).{'.intval($this->bodyWidth).',}$#m', array(&$this, '_wrapOutput'), $this->output);
-		return;
 	}
 	/**
 	 * wrapping callback
@@ -452,8 +465,9 @@ class Markdownify {
 		if ($this->hasParent('pre') && strstr($this->parser->node, "\n")) {
 			$this->parser->node = str_replace("\n", "\n".$this->indent, $this->parser->node);
 		}
-		if (!$this->hasParent('code') && !$this->hasParent('pre')) {
-			#$this->notice('what has to be escaped? see "Backslash escapes" testcase');
+		if (!$this->hasParent('code') && !$this->hasParent('pre') && !$this->skipConversion) {
+			#$this->parser->node = preg_replace('#'.$this->escapeInText.'#', '\\\\$0', $this->parser->node);
+			$this->parser->node = preg_replace('#('.$this->escapeInText.')(.+)\1#', '\\\\$1$2\\\\$1', $this->parser->node);
 		}
 		$this->out($this->parser->node);
 	}
@@ -548,7 +562,7 @@ class Markdownify {
 	 */
 	function handleHeader($level) {
 		if ($this->parser->isStartTag) {
-			#$this->notice('support setex header styles (=== and ----) via setting');
+			/** TODO: setex style headers via config setting **/
 			$this->out(str_repeat('#', $level).' ');
 		} else {
 			$this->setLineBreaks(2);
@@ -594,24 +608,26 @@ class Markdownify {
 			$bufferDecoded = $this->decode(trim($buffer));
 			$hrefDecoded = $this->decode(trim($tag['href']));
 			if (substr($hrefDecoded, 0, 7) == 'mailto:' && 'mailto:'.$bufferDecoded == $hrefDecoded) {
-				# <mail@example.com>
-				$this->out('<'.$bufferDecoded.'>');
-				#$this->notice('handle inline links with titles');
-			} else {
-				# [This link][id]
-				foreach ($this->stack['a'] as &$tag2) {
-					if ($tag2['href'] == $tag['href'] && $tag2['title'] == $tag['title']) {
-						$tag['linkID'] = $tag2['linkID'];
-						break;
-					}
+				if (empty($tag['title'])) {
+					# <mail@example.com>
+					$this->out('<'.$bufferDecoded.'>');
+					return;
 				}
-				if (!isset($tag['linkID'])) {
-					$tag['linkID'] = count($this->stack['a']) + 1;
-					array_push($this->stack['a'], $tag);
-				}
-
-				$this->out('['.$buffer.']['.$tag['linkID'].']');
+				$tag['href'] = $bufferDecoded;
 			}
+			# [This link][id]
+			foreach ($this->stack['a'] as &$tag2) {
+				if ($tag2['href'] == $tag['href'] && $tag2['title'] == $tag['title']) {
+					$tag['linkID'] = $tag2['linkID'];
+					break;
+				}
+			}
+			if (!isset($tag['linkID'])) {
+				$tag['linkID'] = count($this->stack['a']) + 1;
+				array_push($this->stack['a'], $tag);
+			}
+
+			$this->out('['.$buffer.']['.$tag['linkID'].']');
 		}
 	}
 	/**
