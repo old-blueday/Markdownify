@@ -122,19 +122,74 @@ class test {
 			}
 			echo columns(array('html input' => $html, 'generated markdown' => $parsed, 'html output' => $new));
 			echo columns(array('', "RAMDIFF: \t$mem_parsed bytes\nTIME:    \t$time_parsed seconds", "RAMDIFF: \t$mem_md bytes\nTIME:    \t$time_md seconds"), COL_WIDTH, false);
+
+			if (param('regressions')) {
+				$this->checkRegression($diff, $testcase);
+			}
 		}
 		if (param('diff')) {
 			echo "\nDIFF\n".str_repeat(':', COL_WIDTH)."\n".
 					$diff."\n".str_repeat(':', COL_WIDTH)."\n";
 		}
-		if (!$this->show && !param('test')) {
+		if (!$this->show && !param('test') && !param('regressions')) {
 			$this->awaitInput();
 		}
 	}
 	public function awaitInput($output = '...hit enter...') {
-		if (!defined('STDIN'))
-			return;
 		echo $output;
 		fgets(STDIN);
+	}
+	public function cliConfirm($question) {
+		echo $question.' [Y/n] ';
+		$input = strtolower(trim(fgets(STDIN)));
+		if ($input == '' || $input == 'y') {
+			return true;
+		} elseif ($input == 'n') {
+			return false;
+		} else {
+			echo color_str('press "n" to decline or "y" to confirm', 'red')."\n";
+			return $this->cliConfirm($question);
+		}
+	}
+	public function checkRegression($diff, $testcase) {
+		static $path;
+		if (!isset($path)) {
+			# order args
+			$args = array();
+			for ($i = 0, $c = count($_SERVER['argv']); $i < $c; $i++) {
+				$current = $_SERVER['argv'][$i];
+
+				if (substr($current, 0, 2) == '--') {
+					$args[$current] = '';
+				} elseif (end($args) == '') {
+					$args[key($args)] = $current;
+				}
+			}
+			unset($args['--show']);
+			ksort($args);
+			$path = dirname(__FILE__).'/accepted_diffs/'.md5(serialize($args)).'/';
+			if (!is_dir($path)) {
+				mkdir($path);
+				file_put_contents($path.'args.txt', print_r($args, true));
+			}
+		}
+		if (trim($diff) == '') {
+			echo color_str('no differences found', 'light green')."\n";
+			return;
+		}
+
+		if (file_exists($path.$testcase.'.diff')) {
+			$old_diff = file_get_contents($path.$testcase.'.diff');
+
+			if ($diff == $old_diff) {
+				echo color_str('diff was previously accepted', 'yellow')."\n";
+				return;
+			} elseif ($this->cliConfirm(color_str('possible regression, show diffs?', 'light red'))) {
+				echo columns(array('current diff' => $diff, 'old diff' => $old_diff));
+			}
+		}
+		if ($this->cliConfirm(color_str('accept current diff?', 'cyan'))) {
+			file_put_contents($path.$testcase.'.diff', $diff);
+		}
 	}
 }

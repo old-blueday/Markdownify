@@ -180,7 +180,9 @@ function get_cli_color($fgcolor, $bgcolor = false, $blink = false) {
 	}
 	return chr(033).'['.implode(';', $color).'m';
 }
-
+function color_str($str, $fgcolor, $bgcolor = false, $blink = false) {
+	return get_cli_color($fgcolor, $bgcolor, $blink).$str.reset_cli_color();
+}
 /**
  * get string which resets ascii color sequences
  *
