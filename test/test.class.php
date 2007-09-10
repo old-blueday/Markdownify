@@ -180,7 +180,10 @@ class test {
 
 		if (file_exists($path.$testcase.'.diff')) {
 			$old_diff = file_get_contents($path.$testcase.'.diff');
-
+			if ($diff != $old_diff) {
+				var_dump($this->markdownify);
+				die();
+			}
 			if ($diff == $old_diff) {
 				echo color_str('diff was previously accepted', 'yellow')."\n";
 				return;
