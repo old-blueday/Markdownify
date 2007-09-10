@@ -180,6 +180,15 @@ function get_cli_color($fgcolor, $bgcolor = false, $blink = false) {
 	}
 	return chr(033).'['.implode(';', $color).'m';
 }
+/**
+ * simple wrapper for get_cli_color
+ *
+ * @param string $str to be colorized
+ * @param string $fgcolor see get_cli_color() function
+ * @param string $bgcolor
+ * @param bool $blink
+ * @return string
+ */
 function color_str($str, $fgcolor, $bgcolor = false, $blink = false) {
 	return get_cli_color($fgcolor, $bgcolor, $blink).$str.reset_cli_color();
 }
@@ -206,7 +215,7 @@ function reset_cli_color() {
  * @license LGPL
  * @author Milian Wolff (<mail@milianw.de>, <http://milianw.de>)
  */
-function highlight_diff($old, $new, $diff) {
+function highlight_diffs($old, $new, $diff) {
 	preg_match_all('#^(\d+)(?:,(\d+))?([adc])(\d+)(?:,(\d+))?$#m', $diff, $diff_blocks, PREG_SET_ORDER);
 
 	$d_start = get_cli_color(DIFF_FGCOLOR_D, DIFF_BGCOLOR_D);

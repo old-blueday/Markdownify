@@ -100,7 +100,7 @@ class test {
 		if (param('diff-markdown')) {
 			$orig = file_get_contents($path.'.text');
 			$diff = PHPDiff($orig, $parsed);
-			highlight_diff(&$orig, &$parsed, $diff);
+			highlight_diffs(&$orig, &$parsed, $diff);
 			echo columns(array('html input' => $html, 'original markdown' => $orig, 'parsed markdown' => $parsed));
 
 			echo "\n".
@@ -113,7 +113,7 @@ class test {
 			$time_md = $this->time();
 			$mem_md = $this->memory();
 			$diff = PHPDiff($html, $new);
-			highlight_diff(&$html, &$new, $diff);
+			highlight_diffs(&$html, &$new, $diff);
 
 			if (param('whitespace')) {
 				$html = str_replace(array("\t", ' '), array('..', '.'), $html);
@@ -180,16 +180,14 @@ class test {
 
 		if (file_exists($path.$testcase.'.diff')) {
 			$old_diff = file_get_contents($path.$testcase.'.diff');
-			if ($diff != $old_diff) {
-				var_dump($this->markdownify);
-				die();
-			}
 			if ($diff == $old_diff) {
 				echo color_str('diff was previously accepted', 'yellow')."\n";
 				return;
 			} elseif ($this->cliConfirm(color_str('possible regression, show diffs?', 'light red'))) {
 				echo columns(array('current diff' => $diff, 'old diff' => $old_diff));
 			}
+		} elseif ($this->cliConfirm(color_str('show diff?', 'light cyan'))) {
+			echo $diff."\n";
 		}
 		if ($this->cliConfirm(color_str('accept current diff?', 'cyan'))) {
 			file_put_contents($path.$testcase.'.diff', $diff);
