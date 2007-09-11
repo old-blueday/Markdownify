@@ -469,6 +469,8 @@ class Markdownify {
 			#$this->parser->node = preg_replace('#'.$this->escapeInText.'#', '\\\\$0', $this->parser->node);
 			$this->parser->node = preg_replace('#('.$this->escapeInText.')(.+)\1#', '\\\\$1$2\\\\$1', $this->parser->node);
 		}
+		# entity decode
+		$this->decode(&$this->parser->node);
 		$this->out($this->parser->node);
 	}
 	/**
@@ -590,24 +592,29 @@ class Markdownify {
 			$this->buffer();
 			if (!isset($this->parser->tagAttributes['title'])) {
 				$this->parser->tagAttributes['title'] = '';
+			} else {
+				$this->decode(&$this->parser->tagAttributes['title']);
 			}
+			$this->parser->tagAttributes['href'] = $this->decode(trim($this->parser->tagAttributes['href']));
 			$this->stack();
 		} else {
 			$tag = $this->unstack();
 			$buffer = $this->unbuffer();
 
 			if (empty($tag['href']) && empty($tag['title'])) {
+				# empty links... testcase mania, who would possibly do anything like that?!
 				$this->out('['.$buffer.']()');
 				return;
 			}
+
 			if ($buffer == $tag['href'] && empty($tag['title'])) {
 				# <http://example.com>
 				$this->out('<'.$buffer.'>');
 				return;
 			}
+
 			$bufferDecoded = $this->decode(trim($buffer));
-			$hrefDecoded = $this->decode(trim($tag['href']));
-			if (substr($hrefDecoded, 0, 7) == 'mailto:' && 'mailto:'.$bufferDecoded == $hrefDecoded) {
+			if (substr($hrefDecoded, 0, 7) == 'mailto:' && 'mailto:'.$bufferDecoded == $tag['href']) {
 				if (empty($tag['title'])) {
 					# <mail@example.com>
 					$this->out('<'.$bufferDecoded.'>');
@@ -640,21 +647,37 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_img() {
+		if (!$this->parser->isStartTag) {
+			return; # just to be sure this is really an empty tag...
+		}
+
 		# [This link][id]
 		$link_id = false;
+
 		if (!isset($this->parser->tagAttributes['title'])) {
 			$this->parser->tagAttributes['title'] = '';
+		} else {
+			$this->decode(&$this->parser->tagAttributes['title']);
 		}
+
 		if (!isset($this->parser->tagAttributes['alt'])) {
 			$this->parser->tagAttributes['alt'] = $this->parser->tagAttributes['title'];
+		} else {
+			$this->decode(&$this->parser->tagAttributes['alt']);
 		}
+
 		if (empty($this->parser->tagAttributes['src'])) {
+			# support for "empty" images... dunno if this is really needed
+			# but there are some testcases which do that...
 			if (!empty($this->parser->tagAttributes['title'])) {
 				$this->parser->tagAttributes['title'] = ' '.$this->parser->tagAttributes['title'].' ';
 			}
 			$this->out('!['.$this->parser->tagAttributes['alt'].']('.$this->parser->tagAttributes['title'].')');
 			return;
+		} else {
+			$this->decode(&$this->parser->tagAttributes['src']);
 		}
+
 		if (!empty($this->stack['a'])) {
 			foreach ($this->stack['a'] as $tag) {
 				if ($tag['href'] == $this->parser->tagAttributes['src'] && $tag['title'] == $this->parser->tagAttributes['title']) {
@@ -802,6 +825,9 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_hr() {
+		if (!$this->parser->isStartTag) {
+			return; # just to be sure this really is an empty tag
+		}
 		#$this->notice('configurable hr');
 		$this->out('* * *');
 		$this->setLineBreaks(2);
@@ -927,7 +953,7 @@ class Markdownify {
 	 */
 	function decode($text, $quote_style = ENT_NOQUOTES) {
 		if (function_exists('html_entity_decode')) {
-			$text = html_entity_decode($text, $quote_style, 'ISO-8859-1'); // NOTE: UTF-8 does not work!
+			$text = html_entity_decode($text, $quote_style, 'ISO-8859-1');
 		}
 		else {
 			$trans_tbl = get_html_translation_table(HTML_ENTITIES, $quote_style);
