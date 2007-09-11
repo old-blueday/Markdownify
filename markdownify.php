@@ -613,7 +613,10 @@ class Markdownify {
 					$this->out('<'.$bufferDecoded.'>');
 					return;
 				}
-				$tag['href'] = $bufferDecoded;
+				# [mail@example.com][1]
+				# ...
+				#  [1]: mailto:mail@example.com Title
+				$tag['href'] = 'mailto:'.$bufferDecoded;
 			}
 			# [This link][id]
 			foreach ($this->stack['a'] as &$tag2) {
