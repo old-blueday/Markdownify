@@ -614,7 +614,7 @@ class Markdownify {
 			}
 
 			$bufferDecoded = $this->decode(trim($buffer));
-			if (substr($hrefDecoded, 0, 7) == 'mailto:' && 'mailto:'.$bufferDecoded == $tag['href']) {
+			if (substr($tag['href'], 0, 7) == 'mailto:' && 'mailto:'.$bufferDecoded == $tag['href']) {
 				if (empty($tag['title'])) {
 					# <mail@example.com>
 					$this->out('<'.$bufferDecoded.'>');
