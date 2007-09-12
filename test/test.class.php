@@ -26,6 +26,9 @@ class test {
 	var $show;
 
 	var $markdownify;
+	var $diff;
+	var $diff_render;
+	var $diff_render_inline;
 
 	public function __construct() {
 		# default params
@@ -43,6 +46,9 @@ class test {
 
 		$this->markdownify = new Markdownify($linksAfterEachParagraph, $bodyWidth, $keepHTML);
 		$this->show = param('show');
+
+		require_once('test/diff.php');
+		$this->diff = new CliColorDiff();
 	}
 	public function memory() {
 		$old = $this->memory;
@@ -99,8 +105,7 @@ class test {
 		$mem_parsed = $this->memory();
 		if (param('diff-markdown')) {
 			$orig = file_get_contents($path.'.text');
-			$diff = PHPDiff($orig, $parsed);
-			highlight_diffs(&$orig, &$parsed, $diff);
+			$diff = $this->diff->diff(&$orig, &$parsed)->markChanges();
 			echo columns(array('html input' => $html, 'original markdown' => $orig, 'parsed markdown' => $parsed));
 
 			echo "\n".
@@ -112,8 +117,8 @@ class test {
 			$new = Markdown($parsed);
 			$time_md = $this->time();
 			$mem_md = $this->memory();
-			$diff = PHPDiff($html, $new);
-			highlight_diffs(&$html, &$new, $diff);
+			$diff = $this->diff->diff(&$html, &$new)->markChanges();
+
 
 			if (param('whitespace')) {
 				$html = str_replace(array("\t", ' '), array('..', '.'), $html);
@@ -127,9 +132,9 @@ class test {
 				$this->checkRegression($diff, $testcase);
 			}
 		}
-		if (param('diff')) {
+		if (param('diff') && !param('regressions')) {
 			echo "\nDIFF\n".str_repeat(':', COL_WIDTH)."\n".
-					$diff."\n".str_repeat(':', COL_WIDTH)."\n";
+					$diff->render()."\n".str_repeat(':', COL_WIDTH)."\n";
 		}
 		if (!$this->show && !param('test') && !param('regressions')) {
 			$this->awaitInput();
@@ -173,11 +178,11 @@ class test {
 				file_put_contents($path.'args.txt', print_r($args, true));
 			}
 		}
-		if (trim($diff) == '') {
+		if ($diff->isEmpty()) {
 			echo color_str('no differences found', 'light green')."\n";
 			return;
 		}
-
+		$diff = $diff->render();
 		if (file_exists($path.$testcase.'.diff')) {
 			$old_diff = file_get_contents($path.$testcase.'.diff');
 			if ($diff == $old_diff) {
