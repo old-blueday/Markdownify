@@ -227,10 +227,12 @@ function columns($columns, $width = COL_WIDTH, $h_separator1 = '=', $h_separator
 					if (isset($col[$i+1])) {
 						$col[$i+1] = $match.$col[$i+1];
 					}
+					$col[$i] .= str_repeat(' ', $col_width - $col_len).$reset_color;
 				} else {
-					$col[$i] = substr($col[$i], 0, -strlen($reset_color));
+					$col[$i] .= str_repeat(' ', $col_width - $col_len);
 				}
-				array_push($row, $col[$i].str_repeat(' ', $col_width - $col_len).$reset_color);
+				#array_push($row, $col[$i].str_repeat(' ', $col_width - $col_len).$reset_color);
+				array_push($row, $col[$i]);
 				continue;
 			}
 

@@ -117,14 +117,14 @@ class test {
 			$new = Markdown($parsed);
 			$time_md = $this->time();
 			$mem_md = $this->memory();
+			
+			if (param('indented')) {
+				$new = indentHTML($new);
+				$html = indentHTML($html);
+			}
+			
 			$diff = $this->diff->diff(&$html, &$new)->markChanges();
 
-
-			if (param('whitespace')) {
-				$html = str_replace(array("\t", ' '), array('..', '.'), $html);
-				$new = str_replace(array("\t", ' '), array('..', '.'), $new);
-				$parsed = str_replace(array("\t", ' '), array('..', '.'), $parsed);
-			}
 			echo columns(array('html input' => $html, 'generated markdown' => $parsed, 'html output' => $new));
 			echo columns(array('', "RAMDIFF: \t$mem_parsed bytes\nTIME:    \t$time_parsed seconds", "RAMDIFF: \t$mem_md bytes\nTIME:    \t$time_md seconds"), COL_WIDTH, false);
 

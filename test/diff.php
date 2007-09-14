@@ -1,9 +1,12 @@
 <?php
 /** based on: http://www.hawkee.com/snippet/2238/ **/
 
+$orig = getcwd();
+chdir('/home/milian/projects/');
 require_once('Text/Diff.php');
 require_once('Text/Diff/Renderer.php');
 require_once('Text/Diff/Renderer/inline.php');
+chdir($orig);
 
 class CliColorDiff extends Text_MappedDiff {
 	var $old;
@@ -23,13 +26,7 @@ class CliColorDiff extends Text_MappedDiff {
 		$this->old =& $old;
 		$this->new =& $new;
 
-
-		$old_words = preg_split('#\b#', $old);
-		$new_words = preg_split('#\b#', $new);
-		#var_dump($old_words);
-		#die();
-
-		parent::Text_MappedDiff($old_words, $new_words, $old_words, $new_words);
+		parent::Text_Diff('shell', array(explode("\n", $old), explode("\n", $new)));
 		return $this;
 	}
 
@@ -51,30 +48,33 @@ class CliColorDiff extends Text_MappedDiff {
 
 		$this->old = '';
 		$this->new = '';
-
 		foreach ($difference as $op) {
 			$class = get_class($op);
 			switch ($class) {
 				case 'Text_Diff_Op_copy':
-					$this->old .= implode('', $op->final);
-					$this->new .= implode('', $op->final);
+					$this->old .= implode("\n", $op->orig)."\n";
+					$this->new .= implode("\n", $op->final)."\n";
 					break;
 				case 'Text_Diff_Op_delete':
-					$this->old .= $del.implode('', $op->orig).$reset;
-					$this->new .= $del.' '.$reset;
+					$this->old .= $del.implode("\n", $op->orig).$reset."\n";
+					$this->new = substr($this->new, 0, -1).$del."\n".$reset;
 					break;
 				case 'Text_Diff_Op_add':
-					$this->new .= $add.implode('', $op->final).$reset;
-					$this->old .= $add.' '.$reset;
+					$this->new .= $add.implode("\n", $op->final).$reset."\n";
+					$this->old = substr($this->old, 0, -1).$add." ".$reset."\n";
 					break;
 				case 'Text_Diff_Op_change':
-					$this->old .= $chg.implode('', $op->orig).$reset;
-					$this->new .= $chg.implode('', $op->final).$reset;
+					$this->old .= $chg.implode("\n", $op->orig).$reset."\n";
+					$this->new .= $chg.implode("\n", $op->final).$reset."\n";
 					break;
 				default:
 					die(var_dump($class));
 			}
 		}
+		if (substr($this->old, -1) == "\n")
+		  $this->old = substr($this->old, 0, -1);
+		if (substr($this->new, -1) == "\n")
+		  $this->new = substr($this->new, 0, -1);
 		return $this;
 	}
 
