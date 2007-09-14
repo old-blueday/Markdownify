@@ -465,12 +465,14 @@ class Markdownify {
 		if ($this->hasParent('pre') && strstr($this->parser->node, "\n")) {
 			$this->parser->node = str_replace("\n", "\n".$this->indent, $this->parser->node);
 		}
-		if (!$this->hasParent('code') && !$this->hasParent('pre') && !$this->skipConversion) {
-			#$this->parser->node = preg_replace('#'.$this->escapeInText.'#', '\\\\$0', $this->parser->node);
-			$this->parser->node = preg_replace('#('.$this->escapeInText.')(.+)\1#', '\\\\$1$2\\\\$1', $this->parser->node);
+		if (!$this->hasParent('code') && !$this->hasParent('pre')) {
+			# entity decode
+			$this->decode(&$this->parser->node);
+			if (!$this->skipConversion) {
+				# escape some chars in normal Text
+				$this->parser->node = preg_replace('#('.$this->escapeInText.')(.+)\1#', '\\\\$1$2\\\\$1', $this->parser->node);
+			}
 		}
-		# entity decode
-		$this->decode(&$this->parser->node);
 		$this->out($this->parser->node);
 	}
 	/**
