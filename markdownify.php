@@ -280,7 +280,7 @@ class Markdownify {
 					if (!$this->parser->keepWhitespace && $this->parser->isBlockElement) {
 						if ($this->parser->isStartTag) {
 							$this->parser->html = ltrim($this->parser->html);
-						} else {
+						} elseif ($this->parser->tagName != 'pre') {
 							$this->output = rtrim($this->output);
 						}
 					}
@@ -628,6 +628,7 @@ class Markdownify {
 				$tag['href'] = 'mailto:'.$bufferDecoded;
 			}
 			# [This link][id]
+			/** TODO: empty titles **/
 			foreach ($this->stack['a'] as &$tag2) {
 				if ($tag2['href'] == $tag['href'] && $tag2['title'] == $tag['title']) {
 					$tag['linkID'] = $tag2['linkID'];
@@ -655,13 +656,13 @@ class Markdownify {
 
 		# [This link][id]
 		$link_id = false;
-
+		/** TODO: empty titles **/
 		if (!isset($this->parser->tagAttributes['title'])) {
 			$this->parser->tagAttributes['title'] = '';
 		} else {
 			$this->decode(&$this->parser->tagAttributes['title']);
 		}
-
+		/** TODO: empty alt text **/
 		if (!isset($this->parser->tagAttributes['alt'])) {
 			$this->parser->tagAttributes['alt'] = $this->parser->tagAttributes['title'];
 		} else {
@@ -716,6 +717,7 @@ class Markdownify {
 			$this->buffer();
 		} else {
 			$buffer = $this->unbuffer();
+			# use as many backticks as needed
 			preg_match_all('#`+#', $buffer, $matches);
 			if (!empty($matches[0])) {
 				rsort($matches[0]);
@@ -745,7 +747,6 @@ class Markdownify {
 	function handleTag_pre() {
 		$this->indent('    ');
 		if (!$this->parser->isStartTag) {
-			$this->output = rtrim($this->output);
 			$this->setLineBreaks(2);
 		} else {
 			$this->parser->html = ltrim($this->parser->html);
