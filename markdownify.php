@@ -40,6 +40,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * HTML Parser, see http://sf.net/projects/parseHTML
+ */
+require_once(dirname(__FILE__).'/parsehtml/parsehtml.php');
+
+/**
+ * HTML to Markdown converter class
+ */
 class Markdownify {
 	/**
 	 * current indendation
@@ -104,7 +112,6 @@ class Markdownify {
 		$this->keepHTML = $keepHTML;
 		$this->bodyWidth = $bodyWidth;
 
-		require_once(dirname(__FILE__).'/parsehtml.php');
 		$this->parser = new parseHTML;
 
 		# we don't have to do this every time

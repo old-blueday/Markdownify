@@ -16,7 +16,6 @@ require_once('test/folder.php');
 require_once('test/functions.php');
 require_once('test/test.class.php');
 require_once('markdownify.php');
-require_once('parsehtml.php');
 
 
 switch (param('suite')) {

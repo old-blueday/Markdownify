@@ -96,7 +96,7 @@ class test {
 		if ($this->show && $this->show != $i) {
 			return;
 		}
-		echo "running testcase: $testcase ($path)\n".str_repeat('=', COL_WIDTH)."\n";
+		echo "running testcase #$i: $testcase ($path)\n".str_repeat('=', COL_WIDTH)."\n";
 		$html = file_get_contents($path.'.html');
 		$this->memory();
 		$this->time();
