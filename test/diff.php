@@ -1,12 +1,9 @@
 <?php
 /** based on: http://www.hawkee.com/snippet/2238/ **/
 
-$orig = getcwd();
-chdir('/home/milian/projects/');
-require_once('Text/Diff.php');
-require_once('Text/Diff/Renderer.php');
-require_once('Text/Diff/Renderer/inline.php');
-chdir($orig);
+require_once 'Text/Diff.php';
+require_once 'Text/Diff/Renderer.php';
+require_once 'Text/Diff/Renderer/inline.php';
 
 class CliColorDiff extends Text_MappedDiff {
 	var $old;
