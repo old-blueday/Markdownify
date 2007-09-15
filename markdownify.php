@@ -323,6 +323,10 @@ class Markdownify {
 	 */
 	function wrapOutput() {
 		/** TODO: links, code tags, html tags and possibly more must not be wrapped **/
+		/** TODO: paragraphs inside li, e.g.:
+		          1.  Item 1
+		          
+		              Item 2 with long text which should be wrapped 'cause it aint no code block! **/
 		$this->output = preg_replace_callback('#^((?:'.implode('|', $this->wrappableIndents).')+)(?!    ).{'.intval($this->bodyWidth).',}$#m', array(&$this, '_wrapOutput'), $this->output);
 	}
 	/**
@@ -448,6 +452,9 @@ class Markdownify {
 						$this->setLineBreaks(1);
 					}
 				} else {
+					if (!$this->parser->keepWhitespace) {
+						$this->output = rtrim($this->output);
+					}
 					$this->indent('  ');
 					$this->out("\n".$this->indent.$this->parser->node);
 
