@@ -1,4 +1,3 @@
-#!/usr/bin/php
 <?php
 define('COL_WIDTH', 178);
 define('DIFF_FGCOLOR_D', 'white');

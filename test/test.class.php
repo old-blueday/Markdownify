@@ -118,6 +118,10 @@ class test {
 			$time_md = $this->time();
 			$mem_md = $this->memory();
 			
+			if (param('whitespace')) {
+				$parsed = str_replace(' ', '.', $parsed);
+			}
+			
 			if (param('indented')) {
 				$new = indentHTML($new);
 				$html = indentHTML($html);
