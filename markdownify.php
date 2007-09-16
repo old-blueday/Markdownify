@@ -451,18 +451,31 @@ class Markdownify {
 						$this->indent('  ');
 					}
 					$this->flushLinebreaks();
-					$this->out($this->parser->node."\n".$this->indent);
-					if (!$this->parser->isEmptyTag) {
-						$this->indent('  ');
+					if ($this->parser->tagName != 'pre') {
+						$this->out($this->parser->node."\n".$this->indent);
+						if (!$this->parser->isEmptyTag) {
+							$this->indent('  ');
+						} else {
+							$this->setLineBreaks(1);
+						}
 					} else {
-						$this->setLineBreaks(1);
+						$this->out($this->parser->node);
+						static $indent;
+						$indent =  $this->indent;
+						$this->indent = '';
 					}
 				} else {
 					if (!$this->parser->keepWhitespace) {
 						$this->output = rtrim($this->output);
 					}
-					$this->indent('  ');
-					$this->out("\n".$this->indent.$this->parser->node);
+					if ($this->parser->tagName != 'pre') {
+						$this->indent('  ');
+						$this->out("\n".$this->indent.$this->parser->node);
+					} else {
+						$this->out($this->parser->node);
+						static $indent;
+						$this->indent = $indent;
+					}
 
 					if (in_array($this->parent(), array('ins', 'del'))) {
 						$this->out("\n");
