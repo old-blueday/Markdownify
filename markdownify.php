@@ -395,7 +395,7 @@ class Markdownify {
 		$out = array();
 		foreach ($this->stack['a'] as $k => $tag) {
 			if (!isset($tag['unstacked'])) {
-				array_push($out, ' ['.$tag['linkID'].']: '.$tag['href'].(!empty($tag['title']) ? ' "'.$tag['title'].'"' : ''));
+				array_push($out, ' ['.$tag['linkID'].']: '.$tag['href'].(isset($tag['title']) ? ' "'.$tag['title'].'"' : ''));
 				$tag['unstacked'] = true;
 				$this->stack['a'][$k] = $tag;
 			}
@@ -494,7 +494,7 @@ class Markdownify {
 			$this->decode(&$this->parser->node);
 			if (!$this->skipConversion) {
 				# escape some chars in normal Text
-				$this->parser->node = preg_replace('#('.$this->escapeInText.')(.+)\1#', '\\\\$1$2\\\\$1', $this->parser->node);
+				$this->parser->node = preg_replace('#('.$this->escapeInText.')(.*)\1#U', '\\\\$1$2\\\\$1', $this->parser->node);
 			}
 		}
 		$this->out($this->parser->node);
@@ -590,7 +590,6 @@ class Markdownify {
 	 */
 	function handleHeader($level) {
 		if ($this->parser->isStartTag) {
-			/** TODO: setex style headers via config setting **/
 			$this->out(str_repeat('#', $level).' ');
 		} else {
 			$this->setLineBreaks(2);
@@ -616,10 +615,10 @@ class Markdownify {
 	function handleTag_a() {
 		if ($this->parser->isStartTag) {
 			$this->buffer();
-			if (!isset($this->parser->tagAttributes['title'])) {
-				$this->parser->tagAttributes['title'] = '';
-			} else {
+			if (isset($this->parser->tagAttributes['title'])) {
 				$this->decode(&$this->parser->tagAttributes['title']);
+			} else {
+				$this->parser->tagAttributes['title'] = null;
 			}
 			$this->parser->tagAttributes['href'] = $this->decode(trim($this->parser->tagAttributes['href']));
 			$this->stack();
@@ -641,7 +640,7 @@ class Markdownify {
 
 			$bufferDecoded = $this->decode(trim($buffer));
 			if (substr($tag['href'], 0, 7) == 'mailto:' && 'mailto:'.$bufferDecoded == $tag['href']) {
-				if (empty($tag['title'])) {
+				if (is_null($tag['title'])) {
 					# <mail@example.com>
 					$this->out('<'.$bufferDecoded.'>');
 					return;
@@ -652,9 +651,8 @@ class Markdownify {
 				$tag['href'] = 'mailto:'.$bufferDecoded;
 			}
 			# [This link][id]
-			/** TODO: empty titles **/
 			foreach ($this->stack['a'] as &$tag2) {
-				if ($tag2['href'] == $tag['href'] && $tag2['title'] == $tag['title']) {
+				if ($tag2['href'] == $tag['href'] && $tag2['title'] === $tag['title']) {
 					$tag['linkID'] = $tag2['linkID'];
 					break;
 				}
@@ -678,19 +676,15 @@ class Markdownify {
 			return; # just to be sure this is really an empty tag...
 		}
 
-		# [This link][id]
-		$link_id = false;
-		/** TODO: empty titles **/
-		if (!isset($this->parser->tagAttributes['title'])) {
-			$this->parser->tagAttributes['title'] = '';
-		} else {
+		if (isset($this->parser->tagAttributes['title'])) {
 			$this->decode(&$this->parser->tagAttributes['title']);
-		}
-		/** TODO: empty alt text **/
-		if (!isset($this->parser->tagAttributes['alt'])) {
-			$this->parser->tagAttributes['alt'] = $this->parser->tagAttributes['title'];
 		} else {
+			$this->parser->tagAttributes['title'] = null;
+		}
+		if (isset($this->parser->tagAttributes['alt'])) {
 			$this->decode(&$this->parser->tagAttributes['alt']);
+		} else {
+			$this->parser->tagAttributes['alt'] = null;
 		}
 
 		if (empty($this->parser->tagAttributes['src'])) {
@@ -705,9 +699,12 @@ class Markdownify {
 			$this->decode(&$this->parser->tagAttributes['src']);
 		}
 
+		# [This link][id]
+		$link_id = false;
 		if (!empty($this->stack['a'])) {
 			foreach ($this->stack['a'] as $tag) {
-				if ($tag['href'] == $this->parser->tagAttributes['src'] && $tag['title'] == $this->parser->tagAttributes['title']) {
+				if ($tag['href'] == $this->parser->tagAttributes['src']
+						&& $tag['title'] === $this->parser->tagAttributes['title']) {
 					$link_id = $tag['linkID'];
 					break;
 				}
@@ -717,11 +714,14 @@ class Markdownify {
 		}
 		if (!$link_id) {
 			$link_id = count($this->stack['a']) + 1;
-			array_push($this->stack['a'], array(
+			$tag = array(
 				'href' => $this->parser->tagAttributes['src'],
-				'title' => $this->parser->tagAttributes['title'],
 				'linkID' => $link_id,
-			));
+			);
+			if (isset($this->parser->tagAttributes['title'])) {
+				$tag['title'] = $this->parser->tagAttributes['title'];
+			}
+			array_push($this->stack['a'], $tag);
 		}
 
 		$this->out('!['.$this->parser->tagAttributes['alt'].']['.$link_id.']');
@@ -977,19 +977,64 @@ class Markdownify {
 	 * decode email addresses
 	 *
 	 * @author derernst@gmx.ch <http://www.php.net/manual/en/function.html-entity-decode.php#68536>
+	 * @author Milian Wolff <http://milianw.de>
 	 */
 	function decode($text, $quote_style = ENT_NOQUOTES) {
-		if (function_exists('html_entity_decode')) {
-			$text = html_entity_decode($text, $quote_style, 'ISO-8859-1');
+		if (false && version_compare(PHP_VERSION, '5', '>=')) {
+			# UTF-8 is only supported in PHP 5.x.x and above
+			$text = html_entity_decode($text, $quote_style, 'UTF-8');
+		} else {
+			if (function_exists('html_entity_decode')) {
+				$text = html_entity_decode($text, $quote_style, 'ISO-8859-1');
+			} else {
+				static $trans_tbl;
+				if (!isset($trans_tbl)) {
+					$trans_tbl = array_flip(get_html_translation_table(HTML_ENTITIES, $quote_style));
+				}
+				$text = strtr($text, $trans_tbl);
+			}
+			$text = preg_replace_callback('~&#x([0-9a-f]+);~i', array(&$this, '_decode_hex'), $text);
+			$text = preg_replace_callback('~&#(\d{2,5});~', array(&$this, '_decode_numeric'), $text);
 		}
-		else {
-			$trans_tbl = get_html_translation_table(HTML_ENTITIES, $quote_style);
-			$trans_tbl = array_flip($trans_tbl);
-			$text = strtr($text, $trans_tbl);
-		}
-		$text = preg_replace('~&#x([0-9a-f]+);~ei', 'chr(hexdec("\\1"))', $text);
-		$text = preg_replace('~&#([0-9]+);~e', 'chr("\\1")', $text);
 		return $text;
+	}
+	/**
+	 * callback for decode() which converts a hexadecimal entity to UTF-8
+	 *
+	 * @param array $matches
+	 * @return string UTF-8 encoded
+	 */
+	function _decode_hex($matches) {
+		return $this->unichr(hexdec($matches[1]));
+	}
+	/**
+	 * callback for decode() which converts a numerical entity to UTF-8
+	 *
+	 * @param array $matches
+	 * @return string UTF-8 encoded
+	 */
+	function _decode_numeric($matches) {
+		return $this->unichr($matches[1]);
+	}
+	/**
+	 * UTF-8 chr() which supports numeric entities
+	 * 
+	 * @author grey - greywyvern - com <http://www.php.net/manual/en/function.chr.php#55978>
+	 * @param array $matches
+	 * @return string UTF-8 encoded
+	 */
+	function unichr($dec) {
+		if ($dec < 128) {
+			$utf = chr($dec);
+		} else if ($dec < 2048) {
+			$utf = chr(192 + (($dec - ($dec % 64)) / 64));
+			$utf .= chr(128 + ($dec % 64));
+		} else { 
+			$utf = chr(224 + (($dec - ($dec % 4096)) / 4096));
+			$utf .= chr(128 + ((($dec % 4096) - ($dec % 64)) / 64));
+			$utf .= chr(128 + ($dec % 64));
+		}
+		return $utf;
 	}
 	/**
 	 * check if current node has a $tagName as parent (somewhere, not only the direct parent)
