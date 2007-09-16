@@ -327,7 +327,8 @@ class Markdownify {
 		          1.  Item 1
 		          
 		              Item 2 with long text which should be wrapped 'cause it aint no code block! **/
-		$this->output = preg_replace_callback('#^((?:'.implode('|', $this->wrappableIndents).')+)(?!    ).{'.intval($this->bodyWidth).',}$#m', array(&$this, '_wrapOutput'), $this->output);
+		#var_dump('#^((?:'.implode('|', $this->wrappableIndents).')+)(?!    ).{'.intval($this->bodyWidth).',}$#m');
+		$this->output = preg_replace_callback('#^((?:\*   |)+)(?!    ).{'.intval($this->bodyWidth).',}$#m', array(&$this, '_wrapOutput'), $this->output);
 	}
 	/**
 	 * wrapping callback
@@ -336,6 +337,7 @@ class Markdownify {
 	 * @return string
 	 */
 	function _wrapOutput($matches) {
+		var_dump($matches);
 		return wordwrap($matches[0], $this->bodyWidth - strlen($matches[1]), "\n".$matches[1], false);
 	}
 	/**
@@ -444,6 +446,10 @@ class Markdownify {
 
 			if ($this->parser->isBlockElement) {
 				if ($this->parser->isStartTag) {
+					if (in_array($this->parent(), array('ins', 'del'))) {
+						$this->out("\n");
+						$this->indent('  ');
+					}
 					$this->flushLinebreaks();
 					$this->out($this->parser->node."\n".$this->indent);
 					if (!$this->parser->isEmptyTag) {
@@ -458,6 +464,10 @@ class Markdownify {
 					$this->indent('  ');
 					$this->out("\n".$this->indent.$this->parser->node);
 
+					if (in_array($this->parent(), array('ins', 'del'))) {
+						$this->out("\n");
+						$this->indent('  ');
+					}
 					if ($this->parser->tagName == 'li') {
 						$this->setLineBreaks(1);
 					} else {
