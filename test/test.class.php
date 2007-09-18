@@ -37,17 +37,17 @@ class test {
 		$keepHTML = param('html', true);
 
 		if (param('extra')) {
-			require_once('MDTest/Implementations/markdown-extra.php');
-			echo 'Using '.MARKDOWN_PARSER_CLASS.' V'.MARKDOWNEXTRA_VERSION."\n\n";
+			require_once 'MDTest/Implementations/markdown-extra.php';
+			$this->markdownify = new Markdownify_Extra($linksAfterEachParagraph, $bodyWidth, $keepHTML);
+			echo 'Using '.MARKDOWN_PARSER_CLASS.' V'.MARKDOWNEXTRA_VERSION." with Markdownify_Extra\n\n";
 		} else {
-			require_once('MDTest/Implementations/markdown.php');
-			echo 'Using '.MARKDOWN_PARSER_CLASS.' V'.MARKDOWN_VERSION."\n\n";
+			require_once 'MDTest/Implementations/markdown.php';
+			$this->markdownify = new Markdownify($linksAfterEachParagraph, $bodyWidth, $keepHTML);
+			echo 'Using '.MARKDOWN_PARSER_CLASS.' V'.MARKDOWN_VERSION." with Markdownify\n\n";
 		}
-
-		$this->markdownify = new Markdownify($linksAfterEachParagraph, $bodyWidth, $keepHTML);
 		$this->show = param('show');
 
-		require_once('test/diff.php');
+		require_once 'test/diff.php';
 		$this->diff = new CliColorDiff();
 	}
 	public function memory() {
@@ -231,7 +231,7 @@ class test {
 			echo $diff."\n";
 		}
 		if ($this->cliConfirm(color_str('accept current diff?', 'cyan'))) {
-			file_put_contents($path.$testcase.'.diff', $diff);
+			file_put_contents($this->regressionpath.$testcase.'.diff', $diff);
 		}
 	}
 	/**
@@ -245,8 +245,7 @@ class test {
 	 *             3: not yet accepted
 	 */
 	public function isRegression($diff, $testcase) {
-		static $path;
-		if (!isset($path)) {
+		if (!isset($this->regressionpath)) {
 			# order args
 			$args = array();
 			for ($i = 0, $c = count($_SERVER['argv']); $i < $c; $i++) {
@@ -261,17 +260,17 @@ class test {
 			unset($args['--show']);
 			unset($args['--profile']);
 			ksort($args);
-			$path = dirname(__FILE__).'/accepted_diffs/'.md5(serialize($args)).'/';
-			if (!is_dir($path)) {
-				mkdir($path);
-				file_put_contents($path.'args.txt', print_r($args, true));
+			$this->regressionpath = dirname(__FILE__).'/accepted_diffs/'.md5(serialize($args)).'/';
+			if (!is_dir($this->regressionpath)) {
+				mkdir($this->regressionpath);
+				file_put_contents($this->regressionpath.'args.txt', print_r($args, true));
 			}
 		}
 		if (empty($diff)) {
 			return 1;
 		}
-		if (file_exists($path.$testcase.'.diff')) {
-			$old_diff = file_get_contents($path.$testcase.'.diff');
+		if (file_exists($this->regressionpath.$testcase.'.diff')) {
+			$old_diff = file_get_contents($this->regressionpath.$testcase.'.diff');
 			if ($diff == $old_diff) {
 				return 2;
 			} else {

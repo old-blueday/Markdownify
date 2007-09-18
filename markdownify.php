@@ -1,14 +1,14 @@
 <?php
 /**
  * Markdownify converts HTML Markup to [Markdown][1] (by [John Gruber][2]. It
- * also supports [Markdown Extra][3] by [Michel Fortin][4].
+ * also supports [Markdown Extra][3] by [Michel Fortin][4] via Markdownify_Extra.
  *
- * It all started as a port of [Aaron Swartz'][5] [`html2text.py`][6] but
- * got a long way since. This is more than a mere port now!
- * Starting with version 2.0.0 this is a complete rewrite and
- * cannot be compared to Aaron Swatz' `html2text.py` anylonger. I'm now using a
- * HTML parser (see `parsehtml.php` which I also wrote) which makes most of the
- * evil RegEx magic go away and additionally it gives a much cleaner class
+ * It all started as `html2text.php` - a port of [Aaron Swartz'][5] [`html2text.py`][6] - but
+ * got a long way since. This is far more than a mere port now!
+ * Starting with version 2.0.0 this is a complete rewrite and cannot be
+ * compared to Aaron Swatz' `html2text.py` anylonger. I'm now using a HTML parser
+ * (see `parsehtml.php` which I also wrote) which makes most of the evil
+ * RegEx magic go away and additionally it gives a much cleaner class
  * structure. Also notably is the fact that I now try to prevent regressions by
  * utilizing testcases of Michel Fortin's [MDTest][7].
  *
@@ -106,6 +106,14 @@ class Markdownify {
 	var $linksAfterEachParagraph = false;
 	/**
 	 * constructor, set options, setup parser
+	 * 
+	 * @param bool $linksAfterEachParagraph wether or not to flush stacked links after each paragraph
+	 *             defaults to false
+	 * @param int $bodyWidth wether or not to wrap the output to the given width
+	 *             defaults to false
+	 * @param bool $keepHTML wether to keep non markdownable HTML or to discard it
+	 *             defaults to true (HTML will be kept)
+	 * @return void
 	 */
 	function Markdownify($linksAfterEachParagraph = false, $bodyWidth = false, $keepHTML = true) {
 		$this->linksAfterEachParagraph = $linksAfterEachParagraph;
@@ -164,45 +172,12 @@ class Markdownify {
 			'alt' => 'optional',
 			'title' => 'optional',
 		),
-		/** TODO: markdownify_extra **/
-		'h1' => array(
-			#'id' => 'optional',
-		),
-		'h2' => array(
-			#'id' => 'optional',
-		),
-		'h3' => array(
-			#'id' => 'optional',
-		),
-		'h4' => array(
-			#'id' => 'optional',
-		),
-		'h5' => array(
-			#'id' => 'optional',
-		),
-		'h6' => array(
-			#'id' => 'optional',
-		),
-		/** TODO: markdownify_extra **/
-		#'table' => array(),
-		#'th' => array(
-		#	'align' => 'optional',
-		#),
-		#'td' => array(
-		#	'align' => 'optional',
-		#),
-		/** TODO: markdownify_extra **/
-		#'sup' => array(
-		#	'id' => 'optional',
-		#),
-		/** TODO: markdownify_extra **/
-		#'abbr' => array(
-		#	'title' => 'required',
-		#),
-		/** TODO: markdownify_extra **/
-		#'acronym' => array(
-		#	'title' => 'required',
-		#),
+		'h1' => array(),
+		'h2' => array(),
+		'h3' => array(),
+		'h4' => array(),
+		'h5' => array(),
+		'h6' => array(),
 		'hr' => array(),
 	);
 	/**
@@ -211,11 +186,6 @@ class Markdownify {
 	 * @var array<string>
 	 */
 	var $ignore = array(
-		'html',
-		'body',
-		'thead',
-		'tbody',
-		'tfoot',
 	);
 	/**
 	 * html tags to be dropped (contents will not be parsed!)
@@ -292,7 +262,6 @@ class Markdownify {
 						continue;
 					}
 					if (in_array($this->parser->tagName, $this->ignore)) {
-						$this->ignoreTag();
 						break;
 					}
 					if ($this->parser->isStartTag) {
