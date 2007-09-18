@@ -103,6 +103,11 @@ class test {
 		$parsed = $this->markdownify->parseString($html);
 		$time_parsed = $this->time();
 		$mem_parsed = $this->memory();
+		if (param('profile')) {
+			echo "\tRAMDIFF:\t".$mem_parsed." Bytes\n".
+				 "\tTIME:\t\t".$time_parsed."\n\n";
+			return;
+		}
 		if (param('diff-markdown')) {
 			$orig = file_get_contents($path.'.text');
 			$diff = $this->diff->diff(&$orig, &$parsed)->markChanges();
@@ -161,6 +166,9 @@ class test {
 		}
 	}
 	public function checkRegression($diff, $testcase) {
+		if ($testcase == 'test') {
+			return;
+		}
 		static $path;
 		if (!isset($path)) {
 			# order args

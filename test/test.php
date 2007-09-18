@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+
 define('COL_WIDTH', 178);
 define('DIFF_FGCOLOR_D', 'white');
 define('DIFF_BGCOLOR_D', 'red');
@@ -6,8 +8,6 @@ define('DIFF_FGCOLOR_A', 'white');
 define('DIFF_BGCOLOR_A', 'green');
 define('DIFF_FGCOLOR_C', 'white');
 define('DIFF_BGCOLOR_C', 'brown');
-
-error_reporting(E_ALL);
 
 chdir(dirname(__FILE__).'/..');
 

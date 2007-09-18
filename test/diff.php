@@ -65,7 +65,7 @@ class CliColorDiff extends Text_MappedDiff {
 					$this->new .= $chg.implode("\n", $op->final).$reset."\n";
 					break;
 				default:
-					die(var_dump($class));
+					die('BAD CLASS GIVEN: '.var_dump($class));
 			}
 		}
 		if (substr($this->old, -1) == "\n")
