@@ -1076,39 +1076,4 @@ class Markdownify {
 	function parent() {
 		return end($this->parser->openTags);
 	}
-
-	/* debug functions */
-	function todo($message = false) {
-		die('TODO: '.($message ? $message : '')."\n".called()."\n".str_repeat('-', 75)."\n".$this->parser->node.$this->parser->html);
-	}
-	function notice($message = false) {
-		static $already_called = array();
-		$called = called();
-		if (in_array($called, $already_called))
-			return;
-
-		print("\nnotice: ".($message ? $message : '')."\n".$called."\n\n");
-		array_push($already_called, $called);
-	}
-	function debug_pos($len = 25) {
-		var_dump(substr($this->output, -$len));
-		var_dump(substr($this->parser->html, 0, $len));
-	}
-}
-function dump() {
-	$args = func_get_args();
-	ob_start();
-	call_user_func_array('xdebug_var_dump', $args);
-	$dump = ob_get_contents();
-	ob_end_clean();
-	return $dump;
-}
-function called() {
-	$trace = debug_backtrace();
-	$return = "\t".'triggered by ';
-	# calling function / method
-	if (isset($trace[2]['class'])) {
-		$return .= $trace[2]['class'].'->';
-	}
-	return $return.$trace[2]['function'].'() on line '.$trace[1]['line'];
 }
