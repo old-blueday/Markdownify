@@ -459,6 +459,7 @@ class Markdownify {
 						} else {
 							$this->setLineBreaks(1);
 						}
+						$this->parser->html = ltrim($this->parser->html);
 					} else {
 						# don't indent inside <pre> tags
 						$this->out($this->parser->node);
