@@ -115,7 +115,16 @@ class Markdownify {
 		$this->parser = new parseHTML;
 
 		# we don't have to do this every time
-		$this->escapeInText = implode('|', $this->escapeInText);
+		$search = array();
+		$replace = array();
+		foreach ($this->escapeInText as $s => $r) {
+			array_push($search, '#(?<!\\\)'.$s.'#U');
+			array_push($replace, $r);
+		}
+		$this->escapeInText = array(
+			'search' => $search,
+			'replace' => $replace
+		);
 	}
 	/**
 	 * parse a HTML string
@@ -236,14 +245,17 @@ class Markdownify {
 	 * list of chars which have to be escaped in normal text
 	 * @note: use strings in regex format
 	 *
-	 * @var array <string>
+	 * @var array
 	 *
 	 * TODO: what's with block chars / sequences at the beginning of a block?
 	 */
 	var $escapeInText = array(
-		'\*', # emphasis
-		'_', # emphasis
-		'`', # code
+		'\*([^*\s]+)\*' => '\*$1\*', # strong, em
+		'__(?! |_)(.+)(?!<_| )__' => '\_\_$1\_\_', # em
+		'_(?! |_)(.+)(?!<_| )_' => '\_$1\_', # em
+		'`(.+)`' => '\`$1\`', # code
+		'\[(.+)\](\s*\()' => '\[$1\]$2', # links: [text] (url) => [text\] (url)
+		'\[(.+)\](\s*)\[(.*)\]' => '\[$1\]$2\[$3\]', # links: [text][id] => [text\][id\]
 	);
 	/**
 	 * iterate through the nodes and decide what we
@@ -520,7 +532,7 @@ class Markdownify {
 			$this->decode(&$this->parser->node);
 			if (!$this->skipConversion) {
 				# escape some chars in normal Text
-				$this->parser->node = preg_replace('#('.$this->escapeInText.')(.*)\1#U', '\\\\$1$2\\\\$1', $this->parser->node);
+				$this->parser->node = preg_replace($this->escapeInText['search'], $this->escapeInText['replace'], $this->parser->node);
 			}
 		}
 		$this->out($this->parser->node);
