@@ -96,7 +96,6 @@ class test {
 		if ($this->show && $this->show != $i) {
 			return;
 		}
-		echo "running testcase #$i: $testcase ($path)\n".str_repeat('=', COL_WIDTH)."\n";
 		$html = file_get_contents($path.'.html');
 		$this->memory();
 		$this->time();
@@ -104,9 +103,10 @@ class test {
 		$time_parsed = $this->time();
 		$mem_parsed = $this->memory();
 		if (param('profile')) {
-			echo "\tRAMDIFF:\t".$mem_parsed." Bytes\n".
-				 "\tTIME:\t\t".$time_parsed."\n\n";
+			printf("%-50s... %6s ms\t%6d Bytes\n", $testcase, round($time_parsed * 1000, 2), $mem_parsed);
 			return;
+		} else {
+			echo "running testcase #$i: $testcase ($path)\n".str_repeat('=', COL_WIDTH)."\n";
 		}
 		if (param('diff-markdown')) {
 			$orig = file_get_contents($path.'.text');
@@ -117,17 +117,9 @@ class test {
 				"  RAM:\t".$mem_parsed."\n".
 				"  TIME:\t".$time_parsed."\n\n";
 		} elseif(param('twice')) {
-			#$this->memory();
-			#$this->time();
 			$new = Markdown($parsed);
-			#$time_md = $this->time();
-			#$mem_md = $this->memory();
 			$parsed2 = $this->markdownify->parseString($new);
-			#$time_parsed2 = $this->time();
-			#$mem_parsed2 = $this->memory();
 			$new2 = Markdown($parsed2);
-			#$time_md2 = $this->time();
-			#$mem_md2 = $this->memory();
 
 			if (param('indented')) {
 				$html = indentHTML($html);

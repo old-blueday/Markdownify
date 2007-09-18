@@ -31,6 +31,9 @@ switch (param('suite')) {
 
 define('TESTSUITE', 'MDTest/'.$suite.'.mdtest/');
 
+if (param('profile')) {
+	echo "\n== $suite ==\n";
+}
 
 $test = new test;
 
