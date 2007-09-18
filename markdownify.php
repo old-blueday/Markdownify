@@ -447,6 +447,7 @@ class Markdownify {
 			if ($this->parser->isBlockElement) {
 				if ($this->parser->isStartTag) {
 					if (in_array($this->parent(), array('ins', 'del'))) {
+						# looks like ins or del are block elements now
 						$this->out("\n");
 						$this->indent('  ');
 					}
@@ -459,6 +460,7 @@ class Markdownify {
 							$this->setLineBreaks(1);
 						}
 					} else {
+						# don't indent inside <pre> tags
 						$this->out($this->parser->node);
 						static $indent;
 						$indent =  $this->indent;
@@ -472,12 +474,14 @@ class Markdownify {
 						$this->indent('  ');
 						$this->out("\n".$this->indent.$this->parser->node);
 					} else {
+						# reset indentation
 						$this->out($this->parser->node);
 						static $indent;
 						$this->indent = $indent;
 					}
 
 					if (in_array($this->parent(), array('ins', 'del'))) {
+						# ins or del was block element
 						$this->out("\n");
 						$this->indent('  ');
 					}
@@ -489,6 +493,14 @@ class Markdownify {
 				}
 			} else {
 				$this->out($this->parser->node);
+			}
+			if (in_array($this->parser->tagName, array('code', 'pre'))) {
+				if ($this->parser->isStartTag) {
+					$this->buffer();
+				} else {
+					# add stuff so cleanup just reverses this
+					$this->out(str_replace('&lt;', '&amp;lt;', str_replace('&gt;', '&amp;gt;', $this->unbuffer())));
+				}
 			}
 		}
 	}
@@ -519,7 +531,6 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_em() {
-		#$this->notice('make it configurable with either * or _');
 		$this->out('*');
 	}
 	function handleTag_i() {
@@ -730,10 +741,8 @@ class Markdownify {
 			$tag = array(
 				'href' => $this->parser->tagAttributes['src'],
 				'linkID' => $link_id,
+				'title' => $this->parser->tagAttributes['title']
 			);
-			if (isset($this->parser->tagAttributes['title'])) {
-				$tag['title'] = $this->parser->tagAttributes['title'];
-			}
 			array_push($this->stack['a'], $tag);
 		}
 
