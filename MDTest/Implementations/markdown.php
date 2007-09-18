@@ -554,7 +554,7 @@ class Markdown_Parser {
 		return preg_replace(
 			'{
 				^[ ]{0,3}	# Leading space
-				([*-_])		# $1: First marker
+				([-*_])		# $1: First marker
 				(?>			# Repeated marker group
 					[ ]{0,2}	# Zero, one, or two spaces.
 					\1			# Marker character

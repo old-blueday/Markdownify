@@ -103,9 +103,9 @@ class test {
 		$time_parsed = $this->time();
 		$mem_parsed = $this->memory();
 		if (param('profile')) {
-		if ($testcase == 'test') {
-			return 2;
-		}
+			if ($testcase == 'test') {
+				return 2;
+			}
 			$new = Markdown($parsed);
 
 			if (param('indented')) {
@@ -129,7 +129,7 @@ class test {
 					$status = color_str('PENDING', 'light gray');
 					break;
 			}
-			printf("%-50s... %6s ms\t%6d Bytes\t%s\n", $testcase, round($time_parsed * 1000, 2), $mem_parsed, $status);
+			printf("%2d: %-50s... %6s ms\t%6d Bytes\t%s\n", $i, $testcase, round($time_parsed * 1000, 2), $mem_parsed, $status);
 			return;
 		} else {
 			echo "running testcase #$i: $testcase ($path)\n".str_repeat('=', COL_WIDTH)."\n";

@@ -250,7 +250,9 @@ class Markdownify {
 	 * TODO: what's with block chars / sequences at the beginning of a block?
 	 */
 	var $escapeInText = array(
-		'\*([^*\s]+)\*' => '\*$1\*', # strong, em
+		'([-*_])([ ]{0,2}\1){2,}' => '\\\\$0|', # hr
+		'\*\*([^*\s]+)\*\*' => '\*\*$1\*\*', # strong
+		'\*([^*\s]+)\*' => '\*$1\*', # em
 		'__(?! |_)(.+)(?!<_| )__' => '\_\_$1\_\_', # em
 		'_(?! |_)(.+)(?!<_| )_' => '\_$1\_', # em
 		'`(.+)`' => '\`$1\`', # code
@@ -349,7 +351,7 @@ class Markdownify {
 	 * @return string
 	 */
 	function _wrapOutput($matches) {
-		var_dump($matches);
+		#var_dump($matches);
 		return wordwrap($matches[0], $this->bodyWidth - strlen($matches[1]), "\n".$matches[1], false);
 	}
 	/**
@@ -893,6 +895,16 @@ class Markdownify {
 		#$this->notice('configurable hr');
 		$this->out('* * *');
 		$this->setLineBreaks(2);
+	}
+	/**
+	 * handle <br /> tags
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_br() {
+		$this->out("  \n".$this->indent);
+		$this->parser->html = ltrim($this->parser->html);
 	}
 	/**
 	 * node stack, e.g. for <a> and <abbr> tags
