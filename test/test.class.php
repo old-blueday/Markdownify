@@ -110,12 +110,39 @@ class test {
 		}
 		if (param('diff-markdown')) {
 			$orig = file_get_contents($path.'.text');
-			$diff = $this->diff->diff(&$orig, &$parsed)->markChanges();
+			$diff = $this->diff->diff(&$orig, &$parsed)->markChanges()->render();
 			echo columns(array('html input' => $html, 'original markdown' => $orig, 'parsed markdown' => $parsed));
 
 			echo "\n".
 				"  RAM:\t".$mem_parsed."\n".
 				"  TIME:\t".$time_parsed."\n\n";
+		} elseif(param('twice')) {
+			#$this->memory();
+			#$this->time();
+			$new = Markdown($parsed);
+			#$time_md = $this->time();
+			#$mem_md = $this->memory();
+			$parsed2 = $this->markdownify->parseString($new);
+			#$time_parsed2 = $this->time();
+			#$mem_parsed2 = $this->memory();
+			$new2 = Markdown($parsed2);
+			#$time_md2 = $this->time();
+			#$mem_md2 = $this->memory();
+
+			if (param('indented')) {
+				$html = indentHTML($html);
+				$new = indentHTML($new);
+				$new2 = indentHTML($new2);
+			}
+			
+			$diff = $this->diff->diff(&$html, &$new2)->markChanges()->render();
+			echo columns(array('html input' => $html, 'html output 1' => $new, 'html output 2' => $new2));
+			$diff .= $this->diff->diff(&$parsed, &$parsed2)->markChanges()->render();
+			echo columns(array('markdown 1' => $parsed, 'markdown 2' => $parsed2));
+
+			if (param('regressions')) {
+				$this->checkRegression($diff, $testcase);
+			}
 		} else {
 			$this->memory();
 			$this->time();
@@ -132,7 +159,7 @@ class test {
 				$html = indentHTML($html);
 			}
 			
-			$diff = $this->diff->diff(&$html, &$new)->markChanges();
+			$diff = $this->diff->diff(&$html, &$new)->markChanges()->render();
 
 			echo columns(array('html input' => $html, 'generated markdown' => $parsed, 'html output' => $new));
 			echo columns(array('', "RAMDIFF: \t$mem_parsed bytes\nTIME:    \t$time_parsed seconds", "RAMDIFF: \t$mem_md bytes\nTIME:    \t$time_md seconds"), COL_WIDTH, false);
@@ -143,7 +170,7 @@ class test {
 		}
 		if (param('diff') && !param('regressions')) {
 			echo "\nDIFF\n".str_repeat(':', COL_WIDTH)."\n".
-					$diff->render()."\n".str_repeat(':', COL_WIDTH)."\n";
+					$diff."\n".str_repeat(':', COL_WIDTH)."\n";
 		}
 		if (!$this->show && !param('test') && !param('regressions')) {
 			$this->awaitInput();
@@ -190,11 +217,10 @@ class test {
 				file_put_contents($path.'args.txt', print_r($args, true));
 			}
 		}
-		if ($diff->isEmpty()) {
+		if (empty($diff)) {
 			echo color_str('no differences found', 'light green')."\n";
 			return;
 		}
-		$diff = $diff->render();
 		if (file_exists($path.$testcase.'.diff')) {
 			$old_diff = file_get_contents($path.$testcase.'.diff');
 			if ($diff == $old_diff) {
