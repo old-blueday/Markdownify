@@ -103,7 +103,33 @@ class test {
 		$time_parsed = $this->time();
 		$mem_parsed = $this->memory();
 		if (param('profile')) {
-			printf("%-50s... %6s ms\t%6d Bytes\n", $testcase, round($time_parsed * 1000, 2), $mem_parsed);
+		if ($testcase == 'test') {
+			return 2;
+		}
+			$new = Markdown($parsed);
+
+			if (param('indented')) {
+				$html = indentHTML($html);
+				$new = indentHTML($new);
+			}
+			
+			$diff = $this->diff->diff(&$html, &$new)->markChanges()->render();
+
+			switch ($this->isRegression($diff, $testcase)) {
+				case 0:
+					$status = color_str('REGRESSION', 'red');
+					break;
+				case 1:
+					$status = color_str('PASSED', 'green');
+					break;
+				case 2:
+					$status = color_str('ACCEPTED', 'yellow');
+					break;
+				case 3:
+					$status = color_str('PENDING', 'light gray');
+					break;
+			}
+			printf("%-50s... %6s ms\t%6d Bytes\t%s\n", $testcase, round($time_parsed * 1000, 2), $mem_parsed, $status);
 			return;
 		} else {
 			echo "running testcase #$i: $testcase ($path)\n".str_repeat('=', COL_WIDTH)."\n";
@@ -188,6 +214,37 @@ class test {
 		if ($testcase == 'test') {
 			return;
 		}
+		switch ($this->isRegression($diff, $testcase)) {
+			case 1:
+				echo color_str('no differences found', 'light green')."\n";
+				return;
+			case 2:
+				echo color_str('diff was previously accepted', 'yellow')."\n";
+				return;
+			case 0:
+				if ($this->cliConfirm(color_str('possible regression, show diffs?', 'light red'))) {
+					echo columns(array('current diff' => $diff, 'old diff' => $old_diff));
+				}
+				break;
+		}
+		if ($this->cliConfirm(color_str('show diff?', 'light cyan'))) {
+			echo $diff."\n";
+		}
+		if ($this->cliConfirm(color_str('accept current diff?', 'cyan'))) {
+			file_put_contents($path.$testcase.'.diff', $diff);
+		}
+	}
+	/**
+	 * check if a regression occured
+	 * 
+	 * @param string $diff
+	 * @param string $testcase
+	 * @return int 0: regression
+	 *             1: no differences
+	 *             2: accepted diff
+	 *             3: not yet accepted
+	 */
+	public function isRegression($diff, $testcase) {
 		static $path;
 		if (!isset($path)) {
 			# order args
@@ -202,6 +259,7 @@ class test {
 				}
 			}
 			unset($args['--show']);
+			unset($args['--profile']);
 			ksort($args);
 			$path = dirname(__FILE__).'/accepted_diffs/'.md5(serialize($args)).'/';
 			if (!is_dir($path)) {
@@ -210,22 +268,17 @@ class test {
 			}
 		}
 		if (empty($diff)) {
-			echo color_str('no differences found', 'light green')."\n";
-			return;
+			return 1;
 		}
 		if (file_exists($path.$testcase.'.diff')) {
 			$old_diff = file_get_contents($path.$testcase.'.diff');
 			if ($diff == $old_diff) {
-				echo color_str('diff was previously accepted', 'yellow')."\n";
-				return;
-			} elseif ($this->cliConfirm(color_str('possible regression, show diffs?', 'light red'))) {
-				echo columns(array('current diff' => $diff, 'old diff' => $old_diff));
+				return 2;
+			} else {
+				return 0;
 			}
-		} elseif ($this->cliConfirm(color_str('show diff?', 'light cyan'))) {
-			echo $diff."\n";
-		}
-		if ($this->cliConfirm(color_str('accept current diff?', 'cyan'))) {
-			file_put_contents($path.$testcase.'.diff', $diff);
+		} else {
+			return 3;
 		}
 	}
 }
