@@ -62,6 +62,23 @@ class Markdownify_Extra extends Markdownify {
 		$this->isMarkdownable['abbr'] = array(
 			'title' => 'required',
 		);
+		
+		foreach ($this->isMarkdownable as $tag => $def) {
+			if (in_array($tag, array('thead', 'tbody', 'tfoot', 'td', 'tr', 'th')) || !$this->parser->blockElements[$tag]) {
+				$this->isMarkdownable_inTable[$tag] = $def;
+			}
+		}
+		$this->isMarkdownable_copy = $this->isMarkdownable;
+	}
+	function handleTagToText() {
+		if (empty($this->table) || !$this->keepHTML) {
+			parent::handleTagToText();
+		} else {
+			$this->revertSnapshot();
+			$this->isMarkdownable = $this->isMarkdownable_copy;
+			var_dump($this->parser->tagAttributes);
+			trigger_error('todo', E_USER_ERROR);
+		}
 	}
 	/**
 	 * handle header tags (<h1> - <h6>)
@@ -91,9 +108,15 @@ class Markdownify_Extra extends Markdownify {
 	 */
 	function handleTag_abbr() {
 		if ($this->parser->isStartTag) {
-		
+			$this->stack();
+			$this->buffer();
 		} else {
-		
+			$tag = $this->unstack();
+			$tag['text'] = $this->unbuffer();
+			$this->out($tag['text']);
+			if (!in_array($tag, $this->stack['abbr'])) {
+				array_push($this->stack['abbr'], $tag);
+			}
 		}
 	}
 	/**
@@ -103,6 +126,134 @@ class Markdownify_Extra extends Markdownify {
 	 * @return void
 	 */
 	function flushStacked_abbr() {
-	
+		$out = array();
+		foreach ($this->stack['abbr'] as $k => $tag) {
+			if (!isset($tag['unstacked'])) {
+				array_push($out, ' *['.$tag['text'].']: '.$tag['title']);
+				$tag['unstacked'] = true;
+				$this->stack['abbr'][$k] = $tag;
+			}
+		}
+		if (!empty($out)) {
+			$this->out("\n\n".implode("\n", $out));
+		}
+	}
+	var $snapshots = array();
+	var $snapShot_conf = array(
+		'parser' => array(
+			'html',
+			'nodeType',
+			'node',
+			'isStartTag',
+			'isEmptyTag',
+			'tagName',
+			'tagAttributes',
+			'isBlockElement',
+			'keepWhitespace',
+			'openTags',
+		),
+		'notConverted',
+		'skipConversion',
+	);
+	function setSnapshot() {
+		$snapshot = array();
+		foreach ($this->snapShot_conf as $k => $v) {
+			if (is_array($v)) {
+				$snapshot[$k] = array();
+				foreach ($v as $k2) {
+					$snapshot[$k][$k2] = $this->$k->$k2;
+				}
+			} else {
+				$snapshot[$v] = $this->$v;
+			}
+		}
+		array_push($this->snapshots, $snapshot);
+	}
+	function revertSnapshot() {
+		$snapshot = array_pop($this->snapshots);
+		foreach ($this->snapShot_conf as $k => $v) {
+			if (is_array($v)) {
+				foreach ($v as $k2) {
+					 $this->$k->$k2 = $snapshot[$k][$k2];
+				}
+			} else {
+				$this->$v = $snapshot[$v];
+			}
+		}
+	}
+	function dropSnapshot() {
+		array_pop($this->snapshots);
+	}
+	var $tables = array();
+	var $table;
+	var $row;
+	/**
+	 * handle <table> tags
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_table() {
+		if ($this->parser->isStartTag) {
+			$this->setSnapshot();
+			$this->isMarkdownable = $this->isMarkdownable_inTable;
+			$i = count($this->tables);
+			$this->tables[$i] = array(
+				'cols' => array(),
+				'col_widths' => array(),
+				'first'
+			);
+			$this->table =& $this->tables[$i];
+		} else {
+			$this->dropSnapshot();
+			var_dump($this->table);
+			die();
+			if (empty($this->tables)) {
+				$this->isMarkdownable = $this->isMarkdownable_copy;
+			}
+		}
+	}
+	/**
+	 * handle <tr> tags
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_tr() {
+		if ($this->parser->isStartTag) {
+			$i = count($this->table['cols']);
+			$this->table['cols'][$i] = array();
+			$this->row =& $this->table['cols'][$i];
+		} else {
+			$this->row = null;
+		}
+	}
+	/**
+	 * handle <th> tags
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_th() {
+		if ($this->parser->isStartTag) {
+			$this->buffer();
+		} else {
+			$buffer = $this->unbuffer();
+			array_push($this->row, $buffer);
+			array_push($this->row_width, strlen($buffer));
+		}
+	}
+	/**
+	 * handle <td> tags
+	 *
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_td() {
+		if (!$this->parser->isStartTag) {
+			$this->buffer();
+		} else {
+			
+		}
 	}
 }
