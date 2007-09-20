@@ -262,7 +262,7 @@ class Markdownify {
 						if ($this->parser->isStartTag) {
 							$this->parser->html = ltrim($this->parser->html);
 						} elseif ($this->parser->tagName != 'pre') {
-							$this->output = rtrim($this->output);
+							#$this->output = rtrim($this->output);
 						}
 					}
 					if ($this->isMarkdownable()) {

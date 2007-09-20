@@ -73,9 +73,9 @@ class Markdownify_Extra extends Markdownify {
 		array_push($this->ignore, 'thead');
 		array_push($this->ignore, 'tfoot');
 		# sup
-		$this->isMarkdownable['sup'] = array(
-			'id' => 'optional',
-		);
+		#$this->isMarkdownable['sup'] = array(
+		#	'id' => 'optional',
+		#);
 		# abbr
 		$this->isMarkdownable['abbr'] = array(
 			'title' => 'required',
@@ -171,10 +171,6 @@ class Markdownify_Extra extends Markdownify {
 			$this->out("\n\n".implode("\n", $out));
 		}
 	}
-	function flushLinebreaks() {
-		echo "flush lbr: {$this->parser->tagName} {$this->parser->lineBreaks}\n";
-		parent::flushLinebreaks();
-	}
 	/**
 	 * handle <table> tags
 	 * 
@@ -209,7 +205,6 @@ class Markdownify_Extra extends Markdownify {
 				$regEx = sprintf($this->tableLookaheadBody, $regEx);
 				if (preg_match($regEx, $this->parser->html, $matches, null, strlen($matches[0]))) {
 					# this is a markdownable table tag!
-					$this->flushLinebreaks();
 					$this->table = array(
 						'rows' => array(),
 						'col_widths' => array(),
