@@ -250,13 +250,13 @@ class Markdownify {
 					$this->handleText();
 					break;
 				case 'tag':
+					if ($this->parser->isStartTag) {
+						$this->flushLinebreaks();
+					}
 					if ($this->skipConversion || in_array($this->parser->tagName, $this->ignore)) {
 						$this->isMarkdownable(); # update notConverted
 						$this->handleTagToText();
 						continue;
-					}
-					if ($this->parser->isStartTag) {
-						$this->flushLinebreaks();
 					}
 					if (!$this->parser->keepWhitespace && $this->parser->isBlockElement) {
 						if ($this->parser->isStartTag) {
@@ -408,9 +408,7 @@ class Markdownify {
 	 */
 	function handleTagToText() {
 		if (!$this->keepHTML) {
-			if ($this->parser->isStartTag) {
-				$this->flushLinebreaks();
-			} else {
+			if (!$this->parser->isStartTag) {
 				$this->setLineBreaks(2);
 			}
 		} else {
@@ -435,7 +433,6 @@ class Markdownify {
 						$this->out("\n");
 						$this->indent('  ');
 					}
-					$this->flushLinebreaks();
 					if ($this->parser->tagName != 'pre') {
 						$this->out($this->parser->node."\n".$this->indent);
 						if (!$this->parser->isEmptyTag) {
