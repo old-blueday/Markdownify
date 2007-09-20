@@ -86,7 +86,7 @@ class Markdownify_Extra extends Markdownify {
 		$this->tableLookaheadHeader = '{
 		^\s*(?:<thead\s*>)?\s*                               # open optional thead
 			<tr\s*>\s*(?:                                    # start required row with headers
-				<th\s+(?:align=("|\')(?:left|center|right)\1)?\s*>   # header with optional align
+				<th(?:\s+align=("|\')(?:left|center|right)\1)?\s*>   # header with optional align
 				\s*'.$colContents.'\s*                       # contents
 				</th>\s*                                     # close header
 			)+</tr>                                          # close row with headers
@@ -180,50 +180,64 @@ class Markdownify_Extra extends Markdownify {
 	function handleTag_table() {
 		if ($this->parser->isStartTag) {
 			# check if upcoming table can be converted
-			if (preg_match($this->tableLookaheadHeader, $this->parser->html, $matches)) {
-				# header seems good, now check body
-				# get align & number of cols
-				preg_match_all('#<th\s+(?:align=("|\')(left|right|center)\1\s*)?>#si', $matches[0], $cols);
-				$regEx = '';
-				$i = 1;
-				$aligns = array();
-				foreach ($cols[2] as $align) {
-					$align = strtolower($align);
-					array_push($aligns, $align);
-					if (empty($align)) {
-						$align = 'left'; # default value
+			if ($this->keepHTML) {
+				if (preg_match($this->tableLookaheadHeader, $this->parser->html, $matches)) {
+					# header seems good, now check body
+					# get align & number of cols
+					preg_match_all('#<th(?:\s+align=("|\')(left|right|center)\1)?\s*>#si', $matches[0], $cols);
+					$regEx = '';
+					$i = 1;
+					$aligns = array();
+					$this->handleTagToText();
+					return;
+					foreach ($cols[2] as $align) {
+						$align = strtolower($align);
+						array_push($aligns, $align);
+						if (empty($align)) {
+							$align = 'left'; # default value
+						}
+						$td = '\s+align=("|\')'.$align.'\\'.$i;
+						$i++;
+						if ($align == 'left') {
+							# look for empty align or left
+							$td = '(?:'.$td.')?';
+						}
+						$td = '<td'.$td.'\s*>';
+						$regEx .= $td.$this->tdSubstitute;
 					}
-					$td = '\s+align=("|\')'.$align.'\\'.$i;
-					$i++;
-					if ($align == 'left') {
-						# look for empty align or left
-						$td = '(?:'.$td.')?';
+					$regEx = sprintf($this->tableLookaheadBody, $regEx);
+					if (preg_match($regEx, $this->parser->html, $matches, null, strlen($matches[0]))) {
+						# this is a markdownable table tag!
+						$this->table = array(
+							'rows' => array(),
+							'col_widths' => array(),
+							'aligns' => $aligns,
+						);
+						$this->row = 0;
+					} else {
+						# non markdownable table
+						$this->handleTagToText();
 					}
-					$td = '<td'.$td.'\s*>';
-					$regEx .= $td.$this->tdSubstitute;
-				}
-				$regEx = sprintf($this->tableLookaheadBody, $regEx);
-				if (preg_match($regEx, $this->parser->html, $matches, null, strlen($matches[0]))) {
-					# this is a markdownable table tag!
-					$this->table = array(
-						'rows' => array(),
-						'col_widths' => array(),
-						'aligns' => $aligns,
-					);
-					$this->row = 0;
 				} else {
 					# non markdownable table
 					$this->handleTagToText();
 				}
 			} else {
-				# non markdownable table
-				$this->handleTagToText();
+				$this->table = array(
+					'rows' => array(),
+					'col_widths' => array(),
+					'aligns' => array(),
+				);
+				$this->row = 0;
 			}
 		} else {
 			# finally build the table in Markdown Extra syntax
 			$separator = array();
 			# seperator with correct align identifikators
 			foreach($this->table['aligns'] as $col => $align) {
+				if (!$this->keepHTML && !isset($this->table['col_widths'][$col])) {
+					break;
+				}
 				$left = ' ';
 				$right = ' ';
 				switch ($align) {
@@ -318,6 +332,13 @@ class Markdownify_Extra extends Markdownify {
 	 * @return void
 	 */
 	function handleTag_th() {
+		if (!$this->keepHTML && !isset($this->table['rows'][1]) && !isset($this->table['aligns'][$this->col+1])) {
+			if (isset($this->parser->tagAttributes['align'])) {
+				$this->table['aligns'][$this->col+1] = $this->parser->tagAttributes['align'];
+			} else {
+				$this->table['aligns'][$this->col+1] = '';
+			}
+		}
 		$this->handleTag_td();
 	}
 }

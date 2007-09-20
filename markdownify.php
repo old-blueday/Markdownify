@@ -994,7 +994,7 @@ class Markdownify {
 	 * @author Milian Wolff <http://milianw.de>
 	 */
 	function decode($text, $quote_style = ENT_NOQUOTES) {
-		if (false && version_compare(PHP_VERSION, '5', '>=')) {
+		if (version_compare(PHP_VERSION, '5', '>=')) {
 			# UTF-8 is only supported in PHP 5.x.x and above
 			$text = html_entity_decode($text, $quote_style, 'UTF-8');
 		} else {

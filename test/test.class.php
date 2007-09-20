@@ -223,12 +223,11 @@ class test {
 				return;
 			case 0:
 				if ($this->cliConfirm(color_str('possible regression, show diffs?', 'light red'))) {
-					echo columns(array('current diff' => $diff, 'old diff' => $old_diff));
+					echo columns(array('current diff' => $diff, 'old diff' => $this->old_diff));
+				} elseif ($this->cliConfirm(color_str('show diff?', 'light cyan'))) {
+					echo $diff."\n";
 				}
 				break;
-		}
-		if ($this->cliConfirm(color_str('show diff?', 'light cyan'))) {
-			echo $diff."\n";
 		}
 		if ($this->cliConfirm(color_str('accept current diff?', 'cyan'))) {
 			file_put_contents($this->regressionpath.$testcase.'.diff', $diff);
@@ -270,8 +269,8 @@ class test {
 			return 1;
 		}
 		if (file_exists($this->regressionpath.$testcase.'.diff')) {
-			$old_diff = file_get_contents($this->regressionpath.$testcase.'.diff');
-			if ($diff == $old_diff) {
+			$this->old_diff = file_get_contents($this->regressionpath.$testcase.'.diff');
+			if ($diff == $this->old_diff) {
 				return 2;
 			} else {
 				return 0;
