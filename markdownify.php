@@ -50,12 +50,6 @@ require_once dirname(__FILE__).'/parsehtml/parsehtml.php';
  */
 class Markdownify {
 	/**
-	 * current indendation
-	 *
-	 * @var string
-	 */
-	var $static = '';
-	/**
 	 * html parser object
 	 *
 	 * @var parseHTML
@@ -256,13 +250,10 @@ class Markdownify {
 					$this->handleText();
 					break;
 				case 'tag':
-					if ($this->skipConversion) {
+					if ($this->skipConversion || in_array($this->parser->tagName, $this->ignore)) {
 						$this->isMarkdownable(); # update notConverted
 						$this->handleTagToText();
 						continue;
-					}
-					if (in_array($this->parser->tagName, $this->ignore)) {
-						break;
 					}
 					if ($this->parser->isStartTag) {
 						$this->flushLinebreaks();
@@ -277,7 +268,7 @@ class Markdownify {
 					if ($this->isMarkdownable()) {
 						call_user_func(array(&$this, 'handleTag_'.$this->parser->tagName));
 						if ($this->linksAfterEachParagraph && $this->parser->isBlockElement && !$this->parser->isStartTag) {
-							$this->handleStacked();
+							$this->flushStacked();
 						}
 					} else {
 						$this->handleTagToText();
@@ -293,8 +284,8 @@ class Markdownify {
 		if ($this->bodyWidth) {
 			$this->wrapOutput();
 		}
-		# end parsing, handle stacked tags
-		$this->handleStacked();
+		# end parsing, flush stacked tags
+		$this->flushStacked();
 		$this->stack = array();
 
 	}
@@ -365,16 +356,26 @@ class Markdownify {
 		}
 	}
 	/**
-	 * handle stacked links, acronyms
+	 * output all stacked tags
 	 *
 	 * @param void
 	 * @return void
 	 */
-	function handleStacked() {
+	function flushStacked() {
 		# links
-		if (empty($this->stack['a'])) {
-			return;
+		foreach ($this->stack as $tag => $a) {
+			if (!empty($a)) {
+				call_user_func(array(&$this, 'flushStacked_'.$tag));
+			}
 		}
+	}
+	/**
+	 * output link references (e.g. [1]: http://example.com "title");
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function flushStacked_a() {
 		$out = array();
 		foreach ($this->stack['a'] as $k => $tag) {
 			if (!isset($tag['unstacked'])) {
