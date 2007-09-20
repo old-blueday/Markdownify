@@ -29,6 +29,24 @@ require_once dirname(__FILE__).'/markdownify.php';
 
 class Markdownify_Extra extends Markdownify {
 	/**
+	 * table data, including rows with content and the maximum width of each col
+	 * 
+	 * @var array
+	 */
+	var $table = array();
+	/**
+	 * current col
+	 * 
+	 * @var int
+	 */
+	var $col = -1;
+	/**
+	 * current row
+	 * 
+	 * @var int
+	 */
+	var $row = 0;
+	/**
 	 * constructor, see Markdownify::Markdownify() for more information
 	 */
 	function Markdownify_Extra($linksAfterEachParagraph = false, $bodyWidth = false, $keepHTML = true) {
@@ -62,6 +80,31 @@ class Markdownify_Extra extends Markdownify {
 		$this->isMarkdownable['abbr'] = array(
 			'title' => 'required',
 		);
+<<<<<<< .mine
+		
+		# build RegEx lookahead to decide wether table can pe parsed or not
+		$inlineTags = array_keys($this->parser->blockElements, false, true);
+		$colContents = '(?:[^<]|<(?:'.implode('|', $inlineTags).'|[^a-z]))+';
+		$this->tableLookaheadHeader = '{
+		^\s*(?:<thead\s*>)?\s*                               # open optional thead
+			<tr\s*>\s*(?:                                    # start required row with headers
+				<th\s+(?:align=("|\')(?:left|center|right)\1)?\s*>   # header with optional align
+				\s*'.$colContents.'\s*                       # contents
+				</th>\s*                                     # close header
+			)+</tr>                                          # close row with headers
+		\s*(?:</thead>)?                                     # close optional thead
+		}sxi';
+		$this->tdSubstitute = '\s*'.$colContents.'\s*               # contents
+					</td>\s*';
+		$this->tableLookaheadBody = '{
+			\s*(?:<tbody\s*>)?\s*                            # open optional tbody
+				(?:<tr\s*>\s*                                # start row
+					%s                                       # cols to be substituted
+				</tr>)+                                      # close row
+			\s*(?:</tbody>)?                                 # close optional tbody
+		\s*</table>                                          # close table
+		}sxi';
+=======
 		
 		foreach ($this->isMarkdownable as $tag => $def) {
 			if (in_array($tag, array('thead', 'tbody', 'tfoot', 'td', 'tr', 'th')) || !$this->parser->blockElements[$tag]) {
@@ -69,6 +112,7 @@ class Markdownify_Extra extends Markdownify {
 			}
 		}
 		$this->isMarkdownable_copy = $this->isMarkdownable;
+>>>>>>> .r62
 	}
 	function handleTagToText() {
 		if (empty($this->table) || !$this->keepHTML) {
@@ -138,6 +182,162 @@ class Markdownify_Extra extends Markdownify {
 			$this->out("\n\n".implode("\n", $out));
 		}
 	}
+<<<<<<< .mine
+	function flushLinebreaks() {
+		echo "flush lbr: {$this->parser->tagName} {$this->parser->lineBreaks}\n";
+		parent::flushLinebreaks();
+	}
+	/**
+	 * handle <table> tags
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_table() {
+		if ($this->parser->isStartTag) {
+			# check if upcoming table can be converted
+			if (preg_match($this->tableLookaheadHeader, $this->parser->html, $matches)) {
+				# header seems good, now check body
+				# get align & number of cols
+				preg_match_all('#<th\s+(?:align=("|\')(left|right|center)\1\s*)?>#si', $matches[0], $cols);
+				$regEx = '';
+				$i = 1;
+				$aligns = array();
+				foreach ($cols[2] as $align) {
+					$align = strtolower($align);
+					array_push($aligns, $align);
+					if (empty($align)) {
+						$align = 'left'; # default value
+					}
+					$td = '\s+align=("|\')'.$align.'\\'.$i;
+					$i++;
+					if ($align == 'left') {
+						# look for empty align or left
+						$td = '(?:'.$td.')?';
+					}
+					$td = '<td'.$td.'\s*>';
+					$regEx .= $td.$this->tdSubstitute;
+				}
+				$regEx = sprintf($this->tableLookaheadBody, $regEx);
+				if (preg_match($regEx, $this->parser->html, $matches, null, strlen($matches[0]))) {
+					# this is a markdownable table tag!
+					$this->flushLinebreaks();
+					$this->table = array(
+						'rows' => array(),
+						'col_widths' => array(),
+						'aligns' => $aligns,
+					);
+					$this->row = 0;
+				} else {
+					# non markdownable table
+					$this->handleTagToText();
+				}
+			} else {
+				# non markdownable table
+				$this->handleTagToText();
+			}
+		} else {
+			# finally build the table in Markdown Extra syntax
+			$separator = array();
+			# seperator with correct align identifikators
+			foreach($this->table['aligns'] as $col => $align) {
+				$left = ' ';
+				$right = ' ';
+				switch ($align) {
+					case 'left':
+						$left = ':';
+						break;
+					case 'center':
+						$right = ':';
+					case 'right':
+						$right = ':';
+						break;
+				}
+				array_push($separator, $left.str_repeat('-', $this->table['col_widths'][$col]).$right);
+			}
+			$separator = '|'.implode('|', $separator).'|';
+			
+			$rows = array();
+			# add padding
+			array_walk_recursive($this->table['rows'], array(&$this, 'alignTdContent'));
+			$header = array_shift($this->table['rows']);
+			array_push($rows, '| '.implode(' | ', $header).' |');
+			array_push($rows, $separator);
+			foreach ($this->table['rows'] as $row) {
+				array_push($rows, '| '.implode(' | ', $row).' |');
+			}
+			$this->out(implode("\n".$this->indent, $rows));
+			$this->table = array();
+			$this->setLineBreaks(2);
+		}
+	}
+	/**
+	 * properly pad content so it is aligned as whished
+	 * should be used with array_walk_recursive on $this->table['rows']
+	 * 
+	 * @param string &$content
+	 * @param int $col
+	 * @return void
+	 */
+	function alignTdContent(&$content, $col) {
+		switch ($this->table['aligns'][$col]) {
+			default:
+			case 'left':
+				$content .= str_repeat(' ', $this->table['col_widths'][$col] - strlen($content));
+				break;
+			case 'right':
+				$content = str_repeat(' ', $this->table['col_widths'][$col] - strlen($content)).$content;
+				break;
+			case 'center':
+				$paddingNeeded = $this->table['col_widths'][$col] - strlen($content);
+				$left = floor($paddingNeeded / 2);
+				$right = $paddingNeeded - $left;
+				$content = str_repeat(' ', $left).$content.str_repeat(' ', $right);
+				break;
+		}
+	}
+	/**
+	 * handle <tr> tags
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_tr() {
+		if ($this->parser->isStartTag) {
+			$this->col = -1;
+		} else {
+			$this->row++;
+		}
+	}
+	/**
+	 * handle <td> tags
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_td() {
+		if ($this->parser->isStartTag) {
+			$this->col++;
+			if (!isset($this->table['col_widths'][$this->col])) {
+				$this->table['col_widths'][$this->col] = 0;
+			}
+			$this->buffer();
+		} else {
+			$buffer = trim($this->unbuffer());
+			$this->table['col_widths'][$this->col] = max($this->table['col_widths'][$this->col], strlen($buffer));
+			$this->table['rows'][$this->row][$this->col] = $buffer;
+		}
+	}
+	/**
+	 * handle <th> tags
+	 *
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_th() {
+		$this->handleTag_td();
+	}
+=======
 	var $snapshots = array();
 	var $snapShot_conf = array(
 		'parser' => array(
@@ -256,4 +456,5 @@ class Markdownify_Extra extends Markdownify {
 			
 		}
 	}
+>>>>>>> .r62
 }
