@@ -188,8 +188,6 @@ class Markdownify_Extra extends Markdownify {
 					$regEx = '';
 					$i = 1;
 					$aligns = array();
-					$this->handleTagToText();
-					return;
 					foreach ($cols[2] as $align) {
 						$align = strtolower($align);
 						array_push($aligns, $align);
