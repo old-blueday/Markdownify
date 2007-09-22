@@ -250,10 +250,13 @@ class Markdownify {
 					$this->handleText();
 					break;
 				case 'tag':
+					if (in_array($this->parser->tagName, $this->ignore)) {
+						continue;
+					}
 					if ($this->parser->isStartTag) {
 						$this->flushLinebreaks();
 					}
-					if ($this->skipConversion || in_array($this->parser->tagName, $this->ignore)) {
+					if ($this->skipConversion) {
 						$this->isMarkdownable(); # update notConverted
 						$this->handleTagToText();
 						continue;

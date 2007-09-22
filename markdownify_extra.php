@@ -69,8 +69,8 @@ class Markdownify_Extra extends Markdownify {
 			'align' => 'optional',
 		);
 		$this->isMarkdownable['tr'] = array();
-		array_push($this->ignore, 'tbody');
 		array_push($this->ignore, 'thead');
+		array_push($this->ignore, 'tbody');
 		array_push($this->ignore, 'tfoot');
 		# sup
 		#$this->isMarkdownable['sup'] = array(
@@ -102,16 +102,6 @@ class Markdownify_Extra extends Markdownify {
 			\s*(?:</tbody>)?                                 # close optional tbody
 		\s*</table>                                          # close table
 		}sxi';
-	}
-	function handleTagToText() {
-		if (empty($this->table) || !$this->keepHTML) {
-			parent::handleTagToText();
-		} else {
-			$this->revertSnapshot();
-			$this->isMarkdownable = $this->isMarkdownable_copy;
-			var_dump($this->parser->tagAttributes);
-			trigger_error('todo', E_USER_ERROR);
-		}
 	}
 	/**
 	 * handle header tags (<h1> - <h6>)
@@ -244,6 +234,7 @@ class Markdownify_Extra extends Markdownify {
 						break;
 					case 'center':
 						$right = ':';
+						$left = ':';
 					case 'right':
 						$right = ':';
 						break;
