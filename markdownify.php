@@ -315,7 +315,7 @@ class Markdownify {
 	 */
 	function _wrapOutput($matches) {
 		#var_dump($matches);
-		return wordwrap($matches[0], $this->bodyWidth - strlen($matches[1]), "\n".$matches[1], false);
+		return wordwrap($matches[0], $this->bodyWidth - $this->strlen($matches[1]), "\n".$matches[1], false);
 	}
 	/**
 	 * check if current tag can be converted to Markdown
@@ -1052,6 +1052,22 @@ class Markdownify {
 			$utf .= chr(128 + ($dec % 64));
 		}
 		return $utf;
+	}
+	/**
+	 * UTF-8 strlen()
+	 * 
+	 * @param string $str
+	 * @return int
+	 * 
+	 * @author dtorop 932 at hotmail dot com <http://www.php.net/manual/en/function.strlen.php#37975>
+	 * @author Milian Wolff <http://milianw.de>
+	 */
+	function strlen($str) {
+		if (function_exists('mb_strlen')) {
+			return mb_strlen($str, 'UTF-8');
+		} else {
+			return preg_match_all('/[\x00-\x7F\xC0-\xFD]/', $str, $var_empty);
+		}
 	}
 	/**
 	 * check if current node has a $tagName as parent (somewhere, not only the direct parent)

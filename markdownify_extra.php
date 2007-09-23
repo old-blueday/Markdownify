@@ -269,13 +269,13 @@ class Markdownify_Extra extends Markdownify {
 		switch ($this->table['aligns'][$col]) {
 			default:
 			case 'left':
-				$content .= str_repeat(' ', $this->table['col_widths'][$col] - strlen($content));
+				$content .= str_repeat(' ', $this->table['col_widths'][$col] - $this->strlen($content));
 				break;
 			case 'right':
-				$content = str_repeat(' ', $this->table['col_widths'][$col] - strlen($content)).$content;
+				$content = str_repeat(' ', $this->table['col_widths'][$col] - $this->strlen($content)).$content;
 				break;
 			case 'center':
-				$paddingNeeded = $this->table['col_widths'][$col] - strlen($content);
+				$paddingNeeded = $this->table['col_widths'][$col] - $this->strlen($content);
 				$left = floor($paddingNeeded / 2);
 				$right = $paddingNeeded - $left;
 				$content = str_repeat(' ', $left).$content.str_repeat(' ', $right);
@@ -310,7 +310,7 @@ class Markdownify_Extra extends Markdownify {
 			$this->buffer();
 		} else {
 			$buffer = trim($this->unbuffer());
-			$this->table['col_widths'][$this->col] = max($this->table['col_widths'][$this->col], strlen($buffer));
+			$this->table['col_widths'][$this->col] = max($this->table['col_widths'][$this->col], $this->strlen($buffer));
 			$this->table['rows'][$this->row][$this->col] = $buffer;
 		}
 	}
