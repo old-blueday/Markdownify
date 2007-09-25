@@ -72,6 +72,10 @@ class Markdownify_Extra extends Markdownify {
 		array_push($this->ignore, 'thead');
 		array_push($this->ignore, 'tbody');
 		array_push($this->ignore, 'tfoot');
+		# definition lists
+		$this->isMarkdownable['dl'] = array();
+		$this->isMarkdownable['dd'] = array();
+		$this->isMarkdownable['dt'] = array();
 		# sup
 		#$this->isMarkdownable['sup'] = array(
 		#	'id' => 'optional',
@@ -329,5 +333,53 @@ class Markdownify_Extra extends Markdownify {
 			}
 		}
 		$this->handleTag_td();
+	}
+	/**
+	 * handle <dl> tags
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_dl() {
+		if (!$this->parser->isStartTag) {
+			$this->setLineBreaks(2);
+		}
+	}
+	/**
+	 * handle <dt> tags
+	 * 
+	 * @param void
+	 * @return void
+	 **/
+	function handleTag_dt() {
+		if (!$this->parser->isStartTag) {
+			$this->setLineBreaks(1);
+		}
+	}
+	/**
+	 * handle <dd> tags
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_dd() {
+		if ($this->parser->isStartTag) {
+			if (substr(ltrim($this->parser->html), 0, 3) == '<p>') {
+				# next comes a paragraph, so we'll need an extra line
+				$this->out("\n".$this->indent);
+			} elseif (substr($this->output, -2) == "\n\n") {
+				$this->output = substr($this->output, 0, -1);
+			}
+			$this->out(':   ');
+			$this->indent('    ', false);
+		} else {
+			# lookahead for next dt
+			if (substr(ltrim($this->parser->html), 0, 4) == '<dt>') {
+				$this->setLineBreaks(2);
+			} else {
+				$this->setLineBreaks(1);
+			}
+			$this->indent('    ');
+		}
 	}
 }
