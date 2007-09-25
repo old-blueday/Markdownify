@@ -76,10 +76,17 @@ class Markdownify_Extra extends Markdownify {
 		$this->isMarkdownable['dl'] = array();
 		$this->isMarkdownable['dd'] = array();
 		$this->isMarkdownable['dt'] = array();
-		# sup
-		#$this->isMarkdownable['sup'] = array(
-		#	'id' => 'optional',
-		#);
+		# footnotes
+		$this->isMarkdownable['fnref'] = array(
+			'target' => 'required',
+		);
+		$this->isMarkdownable['footnotes'] = array();
+		$this->isMarkdownable['fn'] = array(
+			'name' => 'required',
+		);
+		$this->parser->blockElements['fnref'] = false;
+		$this->parser->blockElements['fn'] = true;
+		$this->parser->blockElements['footnotes'] = true;
 		# abbr
 		$this->isMarkdownable['abbr'] = array(
 			'title' => 'required',
@@ -96,7 +103,7 @@ class Markdownify_Extra extends Markdownify {
 			)+</tr>                                          # close row with headers
 		\s*(?:</thead>)?                                     # close optional thead
 		}sxi';
-		$this->tdSubstitute = '\s*'.$colContents.'\s*               # contents
+		$this->tdSubstitute = '\s*'.$colContents.'\s*        # contents
 					</td>\s*';
 		$this->tableLookaheadBody = '{
 			\s*(?:<tbody\s*>)?\s*                            # open optional tbody
@@ -381,5 +388,96 @@ class Markdownify_Extra extends Markdownify {
 			}
 			$this->indent('    ');
 		}
+	}
+	/**
+	 * handle <fnref /> tags (custom footnote references, see markdownify_extra::parseString())
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_fnref() {
+		$this->out('[^'.$this->parser->tagAttributes['target'].']');
+	}
+	/**
+	 * handle <fn> tags (custom footnotes, see markdownify_extra::parseString()
+	 * and markdownify_extra::_makeFootnotes())
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function handleTag_fn() {
+		if ($this->parser->isStartTag) {
+			$this->out('[^'.$this->parser->tagAttributes['name'].']:');
+			$this->setLineBreaks(1);
+		} else {
+			$this->setLineBreaks(2);
+		}
+		$this->indent('    ');
+	}
+	/**
+	 * handle <footnotes> tag (custom footnotes, see markdownify_extra::parseString()
+	 *  and markdownify_extra::_makeFootnotes())
+	 *  
+	 *  @param void
+	 *  @return void
+	 */
+	function handleTag_footnotes() {
+		if (!$this->parser->isStartTag) {
+			$this->setLineBreaks(2);
+		}
+	}
+	/**
+	 * parse a HTML string, clean up footnotes prior
+	 * 
+	 * @param string $HTML input
+	 * @return string Markdown formatted output
+	 */
+	function parseString($html) {
+		/** TODO: custom markdown-extra options, e.g. titles & classes **/
+		# <sup id="fnref:..."><a href"#fn..." rel="footnote">...</a></sup>
+		# => <fnref target="..." />
+		$html = preg_replace('@<sup id="fnref:([^"]+)">\s*<a href="#fn:\1" rel="footnote">\s*\d+\s*</a>\s*</sup>@Us', '<fnref target="$1" />', $html);
+		# <div class="footnotes">
+		# <hr />
+		# <ol>
+		#
+		# <li id="fn:...">...</li>
+		# ...
+		#
+		# </ol>
+		# </div>
+		# =>
+		# <footnotes>
+		#   <fn name="...">...</fn>
+		#   ...
+		# </footnotes>
+		$html = preg_replace_callback('#<div class="footnotes">\s*<hr />\s*<ol>\s*(.+)\s*</ol>\s*</div>#Us', array(&$this, '_makeFootnotes'), $html);
+		#echo $html;
+		#die();
+		return parent::parseString($html);
+	}
+	/**
+	 * replace HTML representation of footnotes with something more easily parsable
+	 * 
+	 * @note this is a callback to be used in parseString()
+	 * 
+	 * @param array $matches
+	 * @return string
+	 */
+	function _makeFootnotes($matches) {
+		# <li id="fn:1">
+		#   ...
+		#   <a href="#fnref:block" rev="footnote">&#8617;</a></p>
+		# </li>
+		# => <fn name="1">...</fn>
+		# remove footnote link
+		$fns = preg_replace('@\s*(&#160;\s*)?<a href="#fnref:[^"]+" rev="footnote"[^>]*>&#8617;</a>\s*@s', '', $matches[1]);
+		# remove empty paragraph
+		$fns = preg_replace('@<p>\s*</p>@s', '', $fns);
+		# <li id="fn:1">...</li> -> <footnote nr="1">...</footnote>
+		$fns = str_replace('<li id="fn:', '<fn name="', $fns);
+
+		$fns = '<footnotes>'.$fns.'</footnotes>';
+		return preg_replace('#</li>\s*(?=(?:<fn|</footnotes>))#s', '</fn>$1', $fns);
 	}
 }
