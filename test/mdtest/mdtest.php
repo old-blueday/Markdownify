@@ -81,6 +81,20 @@ if (isset($args['t']))  $test_dirs = $args['t'];
 if (isset($args['d']))  $show_diff = true;
 if (isset($args['n']))  $normalize = true;
 
+# color functions etc
+require_once 'cli_functions.php';
+if ($show_diff) {
+	require_once 'diff.php';
+	$clicolordiff = new CliColorDiff();
+	define('COL_WIDTH', 178); // total width of your console window in chars
+	// color definitions
+	define('DIFF_FGCOLOR_D', 'white');
+	define('DIFF_BGCOLOR_D', 'red');
+	define('DIFF_FGCOLOR_A', 'white');
+	define('DIFF_BGCOLOR_A', 'green');
+	define('DIFF_FGCOLOR_C', 'white');
+	define('DIFF_BGCOLOR_C', 'brown');
+}
 if (isset($args['l']) && isset($args['s'])) {
 	exit("$argv[0]: cannot parse with both a script and library.\n");
 }
@@ -271,17 +285,21 @@ foreach ($test_dirs as $test_dir) {
 		$total_time += $proc_time;
 		
 		if ($c_result == $c_output) {
-			printf("OK %8d ms\n", $proc_time);
+			echo color_str(sprintf("OK %8d ms\n", $proc_time), 'light green');
 			$tests_passed++;
 		}
 		else {
-			printf("FAILED %4d ms\n", $proc_time);
+			echo color_str(sprintf("FAILED %4d ms\n", $proc_time), 'light red');
 			$tests_failed++;
 			
 			if ($show_diff) {
-				echo "~~~\n";
-				echo PHPDiff($c_result, $c_output, true);
-				echo "~~~\n\n";
+				$clicolordiff->diff(&$c_result, &$c_output);
+				if (!$clicolordiff->isEmpty()) {
+					# echo $clicolordiff->render(); // would give you the real diff
+					$clicolordiff->markChanges(); // colors output, that's why I used references above
+					echo "\n".columns(array('expected' => $c_result, 'output' => $c_output))."\n";
+					awaitInput('... hit enter to continue ...');
+				}
 			}
 		}
 	}

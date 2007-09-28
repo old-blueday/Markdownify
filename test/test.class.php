@@ -90,13 +90,13 @@ class test {
 		}
 		vprintf($format, $args);
 	}
-	public function run($testcase, $path) {
+	public function run($testcase, $path, $tc_file) {
 		static $i = 0;
 		$i++;
 		if ($this->show && $this->show != $i) {
 			return;
 		}
-		$html = file_get_contents($path.'.html');
+		$html = file_get_contents($tc_file);
 		$this->memory();
 		$this->time();
 		$parsed = $this->markdownify->parseString($html);
@@ -191,23 +191,7 @@ class test {
 					$diff."\n".str_repeat(':', COL_WIDTH)."\n";
 		}
 		if (!$this->show && !param('test') && !param('regressions')) {
-			$this->awaitInput();
-		}
-	}
-	public function awaitInput($output = '...hit enter...') {
-		echo $output;
-		fgets(STDIN);
-	}
-	public function cliConfirm($question) {
-		echo $question.' [Y/n] ';
-		$input = strtolower(trim(fgets(STDIN)));
-		if ($input == '' || $input == 'y') {
-			return true;
-		} elseif ($input == 'n') {
-			return false;
-		} else {
-			echo color_str('press "n" to decline or "y" to confirm', 'red')."\n";
-			return $this->cliConfirm($question);
+			awaitInput();
 		}
 	}
 	public function checkRegression($diff, $testcase) {
@@ -222,14 +206,18 @@ class test {
 				echo color_str('diff was previously accepted', 'yellow')."\n";
 				return;
 			case 0:
-				if ($this->cliConfirm(color_str('possible regression, show diffs?', 'light red'))) {
+				if (cliConfirm(color_str('possible regression, show diffs?', 'light red'))) {
 					echo columns(array('current diff' => $diff, 'old diff' => $this->old_diff));
-				} elseif ($this->cliConfirm(color_str('show diff?', 'light cyan'))) {
+				} elseif (cliConfirm(color_str('show diff?', 'light cyan'))) {
 					echo $diff."\n";
 				}
 				break;
+			case 3:
+				if (cliConfirm(color_str('show diff?', 'light cyan'))) {
+					echo $diff."\n";
+				}
 		}
-		if ($this->cliConfirm(color_str('accept current diff?', 'cyan'))) {
+		if (cliConfirm(color_str('accept current diff?', 'cyan'))) {
 			file_put_contents($this->regressionpath.$testcase.'.diff', $diff);
 		}
 	}

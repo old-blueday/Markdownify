@@ -246,3 +246,31 @@ function columns($columns, $width = COL_WIDTH, $h_separator1 = '=', $h_separator
 	# bottom border
 	return $return.$h_separator1;
 }
+/**
+ * wait for user input
+ *
+ * @param string $output message
+ * @return string what was inserted
+ */
+function awaitInput($output = '...hit enter...') {
+	echo $output;
+	return fgets(STDIN);
+}
+/**
+ * simple yes / no question, with yes preselected
+ * 
+ * @param string $question
+ * @return bool
+ */
+function cliConfirm($question) {
+	echo $question.' [Y/n] ';
+	$input = strtolower(trim(fgets(STDIN)));
+	if ($input == '' || $input == 'y') {
+		return true;
+	} elseif ($input == 'n') {
+		return false;
+	} else {
+		echo color_str('press "n" to decline or "y" to confirm', 'red')."\n";
+		return cliConfirm($question);
+	}
+}

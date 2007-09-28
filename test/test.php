@@ -48,8 +48,8 @@ if ($tc = param('test')) {
 $testCases = new folder(TESTSUITE);
 
 while ($testCases->read()) {
-	if (substr($testCases->file, -5) != '.html') {
+	if (!in_array(substr($testCases->file, -5), array('.html', 'xhtml'))) {
 		continue;
 	}
-	$test->run(substr($testCases->file, 0, -5), substr($testCases->path, 0, -5));
+	$test->run(substr($testCases->file, 0, -5), substr($testCases->path, 0, -5), $testCases->path);
 }
