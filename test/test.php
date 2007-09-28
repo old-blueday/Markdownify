@@ -1,7 +1,15 @@
 <?php
 error_reporting(E_ALL);
 
-define('COL_WIDTH', 178);
+if (extension_loaded('ncurses')) {
+	ncurses_init();
+	$win = ncurses_newwin(0, 0, 0, 0);
+	ncurses_getmaxyx($win, &$height, &$width);
+	ncurses_end();
+} else {
+	$width = 180;
+}
+define('COL_WIDTH', $width);
 define('DIFF_FGCOLOR_D', 'white');
 define('DIFF_BGCOLOR_D', 'red');
 define('DIFF_FGCOLOR_A', 'white');
@@ -48,7 +56,7 @@ if ($tc = param('test')) {
 $testCases = new folder(TESTSUITE);
 
 while ($testCases->read()) {
-	if (!in_array(substr($testCases->file, -5), array('.html', 'xhtml'))) {
+	if (!preg_match('#\.x?html$#', $testCases->file)) {
 		continue;
 	}
 	$test->run(substr($testCases->file, 0, -5), substr($testCases->path, 0, -5), $testCases->path);
