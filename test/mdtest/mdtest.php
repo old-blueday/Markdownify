@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 #
-# MDTest  -  Run tests for Markdown implementations
+# MDTest -- Run tests for Markdown implementations
 #
 # MDTest
 # Copyright (c) 2007 Michel Fortin
@@ -30,7 +30,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-define( 'MDTEST_VERSION', "1.0" ); # Tue 3 Jul 2007
+define( 'MDTEST_VERSION', "1.1" ); # Tue 26 Sep 2007
 
 $version = false;
 $test_dirs = null;
@@ -49,7 +49,8 @@ function millisec() {
 }
 
 if (isset($args['v'])) {
-	echo "$argv[0]: MDTest, version ".MARKDOWN_TEST_VERSION."\n";
+	echo "$argv[0]: MDTest, version ".MDTEST_VERSION."\n";
+	exit;
 }
 if (in_array('-?', $argv) || isset($args['h'])) {
 	echo "\n";
@@ -63,8 +64,8 @@ if (in_array('-?', $argv) || isset($args['h'])) {
 	echo " -------      | -----------\n";
 	echo " -n           | normalize HTML output before compare\n";
 	echo " -d           | show a diff of output vs. expected output\n";
-	echo " -l library   | PHP library to load (like markdown.php)\n";
-	echo " -f function  | PHP function to call (like Markdown)\n";
+	echo " -l library   | php library to load (like markdown.php)\n";
+	echo " -f function  | php function to call (like Markdown)\n";
 	echo " -s script    | script to execute (like Markdown.pl)\n";
 	echo " -t test_dir  | testsuite directory to use\n";
 	echo " -v           | display MDTest version\n";
@@ -152,6 +153,7 @@ if ($normalize && !class_exists('DOMDocument')) {
 	
 $tests_passed = 0;
 $tests_failed = 0;
+$tests_all = 0;
 $total_time = 0;
 $all_times = array();
 
@@ -165,18 +167,44 @@ foreach ($test_dirs as $test_dir) {
 	$testfiles = glob("$test_dir/*.text");
 	if (!$testfiles) {
 		echo "$argv[0]: '$test_dir' does not contain any test case.\n";
-		break;
+		continue;
 	}
 	
 	
 	foreach ($testfiles as $testfile) {
-		$testname = preg_replace('{.*/(.+)\.text$}i', '\\1', $testfile);
+		$dirname = dirname($testfile);
+		$testname = basename($testfile, '.text');
 		printf("%-33s ... ", $testname);
 		
-		// Look for a corresponding .html file fo reach .text file:
-		$resultfile = preg_replace('{\.text$}i', '.html', $testfile);
-		if (!is_file($resultfile)) {
-			exit("$argv[0]: result file '$resultfile' missing.\n");
+		// Look for a corresponding HTML or XHTML file:
+		if (is_file($resultfile = "$dirname/$testname.html")) {
+			$resultformat = 'html';
+		} else if (is_file($resultfile = "$dirname/$testname.xhtml")) {
+			$resultformat = 'xhtml';
+		} else {
+			$resultfile = null;
+			$resultformat = null;
+		}
+			
+		$tests_all++;
+		
+		// No result file, benchmark only.
+		if (!$resultfile) {
+			$t_input = file_get_contents($testfile);
+			$start_time = millisec();
+			if (!isset($script)) {
+				$t_output = call_user_func($func, $t_input);
+			} else {
+				$t_output = `'$script' '$testfile'`;
+			}
+			$end_time = millisec();
+			
+			$proc_time = $end_time - $start_time;
+			$all_times[] = $proc_time;
+			$total_time += $proc_time;
+			
+			printf("?      %4d ms\n", $proc_time);
+			continue;
 		}
 		
 		$t_input = file_get_contents($testfile);
@@ -193,15 +221,36 @@ foreach ($test_dirs as $test_dir) {
 		
 		if ($normalize) {
 			// DOMDocuments
-			$doc_result = @DOMDocument::loadHTML($t_result);
-			$doc_output = @DOMDocument::loadHTML($t_output);
+			if ($resultformat == 'xhtml') {
+				$doc_result = @DOMDocument::loadXML("<!DOCTYPE html>".
+					"<html xmlns='http://www.w3.org/1999/xhtml'>".
+					"<body>$t_result</body></html>");
+				$doc_output = @DOMDocument::loadXML("<!DOCTYPE html>".
+					"<html xmlns='http://www.w3.org/1999/xhtml'>".
+					"<body>$t_output</body></html>");
 			
-			normalizeElementContent($doc_result->documentElement, false);
-			normalizeElementContent($doc_output->documentElement, false);
+				if ($doc_result) {
+					normalizeElementContent($doc_result->documentElement, false);
+					$n_result = $doc_result->saveXML();
+				} else {
+					$n_result = '--- Expected Result: XML Parse Error ---';
+				}
+				if ($doc_output) {
+					normalizeElementContent($doc_output->documentElement, false);
+					$n_output = $doc_output->saveXML();
+				} else {
+					$n_output = '--- Output: XML Parse Error ---';
+				}
+			} else {
+				$doc_result = @DOMDocument::loadHTML($t_result);
+				$doc_output = @DOMDocument::loadHTML($t_output);
 			
-			// Serialized
-			$n_result = $doc_result->saveHTML();
-			$n_output = $doc_output->saveHTML();
+				normalizeElementContent($doc_result->documentElement, false);
+				normalizeElementContent($doc_output->documentElement, false);
+				
+				$n_result = $doc_result->saveHTML();
+				$n_output = $doc_output->saveHTML();
+			}
 			
 			$n_result = preg_replace('{^.*?<body>|</body>.*?$}is', '', $n_result);
 			$n_output = preg_replace('{^.*?<body>|</body>.*?$}is', '', $n_output);
@@ -241,31 +290,33 @@ foreach ($test_dirs as $test_dir) {
 echo "\n";
 //echo "$tests_passed passed ";
 
+if (count($all_times)) {
 
-sort($all_times);
+	sort($all_times);
 
-$average_time = $total_time / ($tests_passed + $tests_failed);
-$min_time = min($all_times);
-$max_time = max($all_times);
+	$average_time = $total_time / ($tests_all);
+	$min_time = min($all_times);
+	$max_time = max($all_times);
 
-$quarter1_index = count($all_times) / 4;
-$quarter2_index = count($all_times) / 2;
-$quarter3_index = count($all_times) * 3 / 4;
-$quarter1_time = ($all_times[floor($quarter1_index)] + $all_times[ceil($quarter1_index)]) / 2;
-$median_time = ($all_times[floor($quarter2_index)] + $all_times[ceil($quarter2_index)]) / 2;
-$quarter3_time = ($all_times[floor($quarter3_index)] + $all_times[ceil($quarter3_index)]) / 2;
+	$quarter1_index = count($all_times) / 4;
+	$quarter2_index = count($all_times) / 2;
+	$quarter3_index = count($all_times) * 3 / 4;
+	$quarter1_time = ($all_times[floor($quarter1_index)] + $all_times[ceil($quarter1_index)]) / 2;
+	$median_time = ($all_times[floor($quarter2_index)] + $all_times[ceil($quarter2_index)]) / 2;
+	$quarter3_time = ($all_times[floor($quarter3_index)] + $all_times[ceil($quarter3_index)]) / 2;
 
-printf("%d passed; %d failed.\n\n", $tests_passed, $tests_failed);
+	printf("%d passed; %d failed.\n\n", $tests_passed, $tests_failed);
 
-printf("                   Total   Avg.   Min.    Q1.   Med.    Q3.   Max.\n");
-printf("Parse Time (ms): %7d %6d %6d %6d %6d %6d %6d\n",
-	$total_time, $average_time, $min_time, $quarter1_time,
-	$median_time, $quarter3_time, $max_time);
+	printf("                   Total   Avg.   Min.    Q1.   Med.    Q3.   Max.\n");
+	printf("Parse Time (ms): %7d %6d %6d %6d %6d %6d %6d\n",
+		$total_time, $average_time, $min_time, $quarter1_time,
+		$median_time, $quarter3_time, $max_time);
 
-printf("Diff. Min. (ms): %7d %6d %6d %6d %6d %6d %6d\n",
-	$total_time-($min_time*($tests_passed+$tests_failed)), $average_time-$min_time, $min_time-$min_time, $quarter1_time-$min_time,
-	$median_time-$min_time, $quarter3_time-$min_time, $max_time-$min_time);
+	printf("Diff. Min. (ms): %7d %6d %6d %6d %6d %6d %6d\n",
+		$total_time-($min_time*($tests_all)), $average_time-$min_time, $min_time-$min_time, $quarter1_time-$min_time,
+		$median_time-$min_time, $quarter3_time-$min_time, $max_time-$min_time);
 
+}
 
 
 function normalizeElementContent($element, $whitespace_preserve) {

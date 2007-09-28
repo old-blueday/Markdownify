@@ -37,17 +37,17 @@ class test {
 		$keepHTML = param('html', true);
 
 		if (param('extra')) {
-			require_once 'MDTest/Implementations/markdown-extra.php';
+			require_once 'mdtest/Implementations/markdown-extra.php';
 			$this->markdownify = new Markdownify_Extra($linksAfterEachParagraph, $bodyWidth, $keepHTML);
 			echo 'Using '.MARKDOWN_PARSER_CLASS.' V'.MARKDOWNEXTRA_VERSION." with Markdownify_Extra\n\n";
 		} else {
-			require_once 'MDTest/Implementations/markdown.php';
+			require_once 'mdtest/Implementations/markdown.php';
 			$this->markdownify = new Markdownify($linksAfterEachParagraph, $bodyWidth, $keepHTML);
 			echo 'Using '.MARKDOWN_PARSER_CLASS.' V'.MARKDOWN_VERSION." with Markdownify\n\n";
 		}
 		$this->show = param('show');
 
-		require_once 'test/diff.php';
+		require_once 'diff.php';
 		$this->diff = new CliColorDiff();
 	}
 	public function memory() {

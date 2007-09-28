@@ -9,13 +9,13 @@ define('DIFF_BGCOLOR_A', 'green');
 define('DIFF_FGCOLOR_C', 'white');
 define('DIFF_BGCOLOR_C', 'brown');
 
-chdir(dirname(__FILE__).'/..');
+chdir(dirname(__FILE__));
 
-require_once 'test/folder.php';
-require_once 'test/functions.php';
-require_once 'test/test.class.php';
-require_once 'markdownify.php';
-require_once 'markdownify_extra.php';
+require_once 'folder.php';
+require_once 'functions.php';
+require_once 'test.class.php';
+require_once '../markdownify.php';
+require_once '../markdownify_extra.php';
 
 
 switch (param('suite')) {
@@ -30,7 +30,7 @@ switch (param('suite')) {
 		break;
 }
 
-define('TESTSUITE', 'MDTest/'.$suite.'.mdtest/');
+define('TESTSUITE', 'mdtest/'.$suite.'.mdtest/');
 
 if (param('profile')) {
 	echo "\n== $suite ==\n";

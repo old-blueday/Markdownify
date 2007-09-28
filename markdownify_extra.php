@@ -452,8 +452,6 @@ class Markdownify_Extra extends Markdownify {
 		#   ...
 		# </footnotes>
 		$html = preg_replace_callback('#<div class="footnotes">\s*<hr />\s*<ol>\s*(.+)\s*</ol>\s*</div>#Us', array(&$this, '_makeFootnotes'), $html);
-		#echo $html;
-		#die();
 		return parent::parseString($html);
 	}
 	/**
