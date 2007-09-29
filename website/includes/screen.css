@@ -1,0 +1,63 @@
+@charset "utf-8";
+
+*{
+	margin:0;
+	padding:0;
+	font:normal 1em "DejaVu Sans",Tahoma,Arial,sans-serif;
+	text-decoration:none;
+	border-collapse:collapse;
+	border-spacing:0;
+}
+html, body {
+	min-height: 100%;
+	height: auto !important;
+	height: 100%;
+	background:#eee;
+ 	color:#333;
+}
+/* constant scrollbar for gecko, to prevent "jumping" */
+html[id]{
+	padding-bottom:0.005em;
+}
+body{
+	font-size:62.5%;
+	line-height:100.1%;
+	font-size:0.8em;
+	min-width:100%;
+}
+#body {
+	width:800px;
+	background:#fff;
+}
+a img {
+	border:none;
+}
+a {
+	color:#0AF;
+	text-decoration:none;
+}
+a:hover,a:focus {
+	text-decoration:underline;
+	color:#333;
+}
+a[href^="http://"] {
+	padding-left:18px;
+	background:url(../images/extern.png) left center no-repeat;
+}
+a[href^="mailto:"] {
+	padding-left:18px;
+	background:url(../images/mail.png) left center no-repeat;
+}
+/**
+ * clear
+ **/
+/*
+div:after{
+	content:".";
+	display:block;
+	clear:both;
+	visibility:hidden;
+	height:0;
+	width:0;
+}
+*/

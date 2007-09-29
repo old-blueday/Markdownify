@@ -295,7 +295,7 @@ foreach ($test_dirs as $test_dir) {
 			if ($show_diff) {
 				$clicolordiff->diff(&$c_result, &$c_output);
 				if (!$clicolordiff->isEmpty()) {
-					# echo $clicolordiff->render(); // would give you the real diff
+					echo $clicolordiff->render(); // would give you the real diff
 					$clicolordiff->markChanges(); // colors output, that's why I used references above
 					echo "\n".columns(array('expected' => $c_result, 'output' => $c_output))."\n";
 					awaitInput('... hit enter to continue ...');
