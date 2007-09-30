@@ -809,11 +809,15 @@ class Markdownify {
 		if ($this->parser->isStartTag) {
 			$this->stack();
 			if (substr($this->output, -strlen("\n".$this->indent)) != "\n".$this->indent) {
+				# make sure, that we put this on a new line
 				$this->out("\n".$this->indent);
 			}
 		} else {
 			$this->unstack();
-			$this->setLineBreaks(2);
+			if ($this->parent() != 'li' || preg_match('#^\s*(</li\s*>\s*<li\s*>\s*)?<p\s*>#sU', $this->parser->html, $matches)) {
+				# dont make Markdown add unneeded paragraphs
+				$this->setLineBreaks(2);
+			}
 		}
 	}
 	/**
@@ -826,13 +830,6 @@ class Markdownify {
 		# same as above
 		$this->parser->tagAttributes['num'] = 0;
 		$this->handleTag_ul();
-		if (!$this->parser->isStartTag) {
-			$this->setLineBreaks(2);
-		} else {
-			if (substr($this->output, -strlen("\n".$this->indent)) != "\n".$this->indent) {
-				$this->out("\n".$this->indent);
-			}
-		}
 	}
 	/**
 	 * handle <li> tags
