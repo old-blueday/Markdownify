@@ -46,6 +46,13 @@
 require_once dirname(__FILE__).'/parsehtml/parsehtml.php';
 
 /**
+ * default configuration
+ */
+define('MDFY_LINKS_EACH_PARAGRAPH', false);
+define('MDFY_BODYWIDTH', false);
+define('MDFY_KEEPHTML', true);
+
+/**
  * HTML to Markdown converter class
  */
 class Markdownify {
@@ -109,7 +116,7 @@ class Markdownify {
 	 *             defaults to true (HTML will be kept)
 	 * @return void
 	 */
-	function Markdownify($linksAfterEachParagraph = false, $bodyWidth = false, $keepHTML = true) {
+	function Markdownify($linksAfterEachParagraph = MDFY_LINKS_EACH_PARAGRAPH, $bodyWidth = MDFY_BODYWIDTH, $keepHTML = MDFY_KEEPHTML) {
 		$this->linksAfterEachParagraph = $linksAfterEachParagraph;
 		$this->keepHTML = $keepHTML;
 		$this->bodyWidth = $bodyWidth;

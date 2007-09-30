@@ -49,7 +49,7 @@ class Markdownify_Extra extends Markdownify {
 	/**
 	 * constructor, see Markdownify::Markdownify() for more information
 	 */
-	function Markdownify_Extra($linksAfterEachParagraph = false, $bodyWidth = false, $keepHTML = true) {
+	function Markdownify_Extra($linksAfterEachParagraph = MDFY_LINKS_EACH_PARAGRAPH, $bodyWidth = MDFY_BODYWIDTH, $keepHTML = MDFY_KEEPHTML) {
 		parent::Markdownify($linksAfterEachParagraph, $bodyWidth, $keepHTML);
 		
 		### new markdownable tags & attributes
