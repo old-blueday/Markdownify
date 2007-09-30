@@ -147,8 +147,16 @@ class Markdownify_Extra extends Markdownify {
 		} else {
 			$tag = $this->unstack();
 			$tag['text'] = $this->unbuffer();
+			$add = true;
+			foreach ($this->stack['abbr'] as $stacked) {
+				if ($stacked['text'] == $tag['text']) {
+					/** TODO: differing abbr definitions, i.e. different titles for same text **/
+					$add = false;
+					break;
+				}
+			}
 			$this->out($tag['text']);
-			if (!in_array($tag, $this->stack['abbr'])) {
+			if ($add) {
 				array_push($this->stack['abbr'], $tag);
 			}
 		}
