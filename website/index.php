@@ -1,54 +1,102 @@
 <?php
-error_reporting(E_ALL);
+error_reporting(E_ALL | E_STRICT);
 
 require_once 'fry/core/Fry.php';
-
+require_once 'lib/markdown-extra.php';
+require_once 'lib/smartypants.php';
 try {
-	$lang = 'en';
-	
-	if (isset($_GET['lang']) && in_array($_GET['lang'], array('lt', 'en'))) {
-		$lang = $_GET['lang'];
+	$language = 'en';
+	$langs = array('en', 'de');
+	if (isset($_GET['lang']) && in_array($_GET['lang'], $langs)) {
+		$language = $_GET['lang'];
+	} elseif(isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+		# user agent
+		$languages = explode(',', str_replace('-', '_',
+						str_replace('..','',
+							str_replace('/','',$_SERVER['HTTP_ACCEPT_LANGUAGE']))));
+		$cur_qual = 0;
+		$cur_lang = '';
+		for ($i = 0, $len = count($languages); $i < $len; $i++) {
+			$lang = trim($languages[$i]);
+			if (strstr($lang,';q=')) {
+				# user defined qualtiy
+				$lang = explode(';q=',$lang,2);
+				$lang = trim($lang[0]);
+				$qual = floatval($lang[1]);
+			} else {
+				# default quality
+				$qual = 1.0;
+			}
+			if (!empty($cur_lang) && $cur_qual >= $qual) {
+				# currently selected language has a higher quality
+				continue;
+			}
+			# remove trailing semicolon(s)
+			$file = rtrim($lang, ';');
+			# search for matches to first two chars, e.g. "en" or "de"
+			$lang = substr($lang, 0, 2);
+			if (in_array($lang, $langs)) {
+				$cur_lang = $lang;
+				$cur_qual = $qual;
+			}
+		}
+		$language = $cur_lang;
 	}
-	$fry = new Fry(new FryConfig('config/config.xml'));
-	$fry->setGlobal('something', 'Global text, not form menu template');
-	
-	// main template, holder for subtemplates
-	// + we set a local variable for this template
-	$main = new FryTemplate("main.tpl.php");
-	$main->set('title', 'Fry example 1');
-	
-	// menu template
-	$menu = new FryTemplate("menu.tpl.php");
-	
-	// content template
-	// + we set a local variable without using a setter
-	$content = new FryTemplate("content.tpl.php");
-	$content->advertisement = array(
-		"Object oriented",
-		"Fast",
-		"Secure",
-		"Developed using Test Driven Development (TDD)",
-		"Easy to learn",
-		"Light weight"
-	);
-	
-	$footer = new FryTemplate("footer.tpl.php");
-	
-	// here we add all these templates to Fry, one main and other as parts
-	$fry->setTemplate($main);
-	$fry->setTemplatePart('menu', $menu);
-	$fry->setTemplatePart('content', $content);
-	$fry->setTemplatePart('footer', $footer);
-	
-	// render and output page
-	echo $fry->render();
-	
-	// initialise Fry system, if you want, pass a config
-	$fry = new Fry(new FryConfig('config/config.xml'));
+	$fry = new Fry(new FryConfig('config.xml'));
+	$fry->setDictionary(new FryDictionary('l18n/'.$language.'.xml'));
 	$fry->setGlobal('title', 'Markdownify: The HTML to Markdown converter for PHP');
-	$body = new FryTemplate('templates/body.inc.php');
+
+	$body = new FryTemplate('templates/body.tpl.php');
+	
+	if (isset($_GET['show']) && $_GET['show'] == 'demo') {
+		if (!empty($_POST['input'])) {
+			require_once 'lib/markdownify_extra.php';
+			require_once 'lib/diff.php';
+			$input = $_POST['input'];
+			if (!isset($_POST['leap'])) {
+				$leap = MDFY_LINKS_EACH_PARAGRAPH;
+			} else {
+				$leap = $_POST['leap'];
+			}
+			
+			if (!isset($_POST['keepHTML'])) {
+				$keephtml = MDFY_KEEPHTML;
+			} else {
+				$keephtml = $_POST['keepHTML'];
+			}
+			if (!empty($_POST['extra'])) {
+				$md = new Markdownify_Extra($leap, MDFY_BODYWIDTH, $keephtml);
+			} else {
+				$md = new Markdownify($leap, MDFY_BODYWIDTH, $keephtml);
+			}
+			$parsed = $md->parseString($input);
+			$output = Markdown($parsed);
+			$diff = new HTMLColorDiff;
+			$input = htmlspecialchars($input, ENT_NOQUOTES, 'UTF-8');
+			$inputOrig = $input;
+			$output = htmlspecialchars($output, ENT_NOQUOTES, 'UTF-8');
+			$parsed = htmlspecialchars($parsed, ENT_NOQUOTES, 'UTF-8');
+			$diff->diff(&$input, &$output)->markChanges();
+		} else {
+			$parsed = '';
+			$input = '';
+			$output = '';
+		}
+		$content = new FryTemplate('demo.tpl.php');
+		$content->set('inputForm', $inputOrig);
+		$content->set('input', $input);
+		$content->set('output', $output);
+		$content->set('parsed', $parsed);
+	} else {
+		$content = new FryTemplate('about.tpl.php');
+	}
+
+	$fry->setTemplate($body);
+	$fry->setTemplatePart('content', $content);
+
+	echo $fry->render();
 } catch (Exception $e) {
-	ob_clean(); // not to see partly rendered templates output
+	ob_flush();
 	echo "<b>Error:</b><br/>\n" . $e->getMessage() 
 			. "<br/>\n<b>Trace:</b><br/>\n" 
 			. preg_replace("/(\n)|(\r\n)/", "\\1<br/>", $e->getTraceAsString());
