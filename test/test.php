@@ -50,7 +50,7 @@ if ($tc = param('test')) {
 	if (!file_exists(TESTSUITE.$tc.'.html')) {
 		trigger_error('Testcase '.$tc.' could not be found!', E_USER_ERROR);
 	}
-	$test->run($tc, TESTSUITE.$tc);
+	$test->run($tc, TESTSUITE.$tc, TESTSUITE.$tc.'.html');
 	die();
 }
 $testCases = new folder(TESTSUITE);
