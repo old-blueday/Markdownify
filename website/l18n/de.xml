@@ -35,50 +35,47 @@ Art der Formatierung er bevorzugt: Einfaches HTML, einen Wysiwyg-Editor oder abe
 
 ### Und was verliere ich dadurch?
 
-Bisher gibt es ein paar Nachteile, die durch die Benutzung von Markdownify entstehen; allesamt
-sind sie aber in meinen Augen vernachlässigbar:
-
- *  Die persönliche Formatierung _des Markdown-Texts_ geht teilweise verloren
- 
-    Markdownify benutzt die Standardzeichen zur Auszeichnung von Markdown, deshalb kommt es u.a. zu
-	folgenden _"Verlusten"_.
-	
-	    Input:
-	    Text _Betonung_ [Link](http://example.com)
-	    
-	    Output:
-	    Text *Betonung* [Link][1]
-	    
-	    [1]: http://example.com
-	
-	Natürlich wird damit nicht jeder zufrieden sein, aber auf irgendwas muss man sich ja schließlich einigen.
-	
-	Probieren Sie selber einige der Beispiele auf der [Demoseite][demo] aus, um sich selbst davon zu
-	überzeugen, dass man eigentlich sehr gut mit diesem _"Problem"_ leben kann.
- 
- *  [PHP Markdown Extra] bietet eine Möglichkeit, Abkürzungen (`&lt;abbr>`) darzustellen. `Markdownify_Extra`
+ *  [PHP Markdown Extra][] bietet eine Möglichkeit, Abkürzungen (`&lt;abbr>`) darzustellen. `Markdownify_Extra`
 	konvertiert diese, allerdings wird es bei folgendem Input zu Problemen kommen:
+
+	    &lt;p>&lt;abbr title="Definition 1">ABKÜRZUNG&lt;/abbr>&lt;/p>
 	
-	    &lt;abbr title="Definition 1">ABKÜRZUNG&lt;/abbr>
-	    
-	    &lt;abbr title="Definition 2">ABKÜRZUNG&lt;/abbr>
+	    &lt;p>&lt;abbr title="Definition 2">ABKÜRZUNG&lt;/abbr>&lt;/p>
 	
-	Wie z.B. auf der [Demoseite][demo] zu sehen ist, wird lediglich die erste Definition der Abkürzung
-	berücksichtigt. Irgendwo ist das ja auch logisch, schließlich sollte eine Abkürzung immer dieselbe
-	Definition erhalten!
+	Wie z.B. auf der [Demoseite][demo] zu sehen ist (nicht vergessen, Markdownify Extra zu aktivieren), wird
+	lediglich die erste Definition der Abkürzung berücksichtigt. Irgendwo ist das ja auch logisch,
+	schließlich sollte eine Abkürzung immer dieselbe Definition erhalten!
 
 ### Technisches
 
 **Status:** Markdownify befindet sich zur Zeit im **Beta** Status. Es fehlt noch die Unterstützung von
-`Markdownify_Extra` für "Markdown in Blockelementen". Außerdem steht noch ein Code-Review mit
-möglichem Refactoring und hoffentlich noch einigen Performance-Verbesserungen.
+`Markdownify_Extra` für "Markdown in Blockelementen" und das Umbrechen von langen Textzeilen (_"wordwrapping").
+Außerdem steht noch ein Code-Review mit möglichem Refactoring und hoffentlich noch einigen Performance-Verbesserungen.
 
 Markdownify ist in [PHP][] entwickelt und sollte ab PHP 4.3 laufen. Als Grundlage für das *"Test Driven
 Development"* (TDD) wurden die Testtexte aus [MDTest][] benutzt. Für die Konvertierung von Markdown in
 HTML benutzt man am Besten [Michel Fortin's][mf] [PHP Markdown][] bzw. [PHP Markdown Extra][].
 
+#### Wie man Markdownify benutzt
+
+Einfacher geht es kaum:
+
+    &lt;?php
+	require_once 'markdownify.php';
+	$md = new Markdownify;
+	echo $md->parseString($htmlInput);
+
 Und _ja_ - **PHP Markdown Extra wird von Markdownify unterstützt!**. Dazu verwendet man einfach die
 `Markdownify_Extra` Klasse.
+
+Optional lassen sich dem Konstruktor der Klasse einige Konfigurationen übergeben:
+
+* Der erste Parameter ist ein Boolean und entscheidet darüber, ob Linkdefinitionen nach jedem Blockelement
+ausgegeben werden sollen. Standard ist hier `false`.
+* Der zweite Parameter ist eine Zahl (oder `false`) und gibt die Breite der Ausgabe an. Es wird versucht
+diesen dann auf die gegebene Breite zu beschränken. **Dieses Feature ist noch nicht fertig!**
+* Der letzte Parameter ist erneut ein Boolean und gibt an, ob nicht-konvertierbare HTML-Elemente in der
+Ausgabe eingeschlossen werden sollen, oder ob diese vernachlässigt werden sollen. Standard ist `true`.
 
 ### Lizenz
 
@@ -130,4 +127,5 @@ ICQ:
 	<variable name="mdOutput">Markdown Ausgabe</variable>
 	<variable name="footer" applyFilter="MarkdownExtra">die verwendeten Icons stammen aus dem [Oxygen Projekt](http://oxygen-icons.org) und unterliegen der [Creative Commons Attribution-Share Alike 3.0 Unported](http://creativecommons.org/licenses/by-sa/3.0/) Lizenz</variable>
 	<variable name="demo_options">Optionen</variable>
+	<variable name="donate">Wenn Sie Markdownify mögen und mir danken möchten - bitte spenden Sie etwas!</variable>
 </dict>

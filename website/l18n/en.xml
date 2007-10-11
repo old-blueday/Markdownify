@@ -2,5 +2,125 @@
 <!DOCTYPE dict>
 <dict>
 	<variable name="title">Markdownify: The HTML to Markdown converter for PHP</variable>
-	<variable name="text">Labas pasauli</variable>
+	<variable name="demoTitle">online demo</variable>
+	<variable name="trackerTitle">bug tracker</variable>
+	<variable name="downloadTitle">download</variable>
+	<variable name="svnTitle">sourcecode</variable>
+	<variable name="sf.netTitle">project page on SF.net</variable>
+	<variable name="aboutTitle">about Markdownify</variable>
+	<variable name="aboutContent" applyFilter="MarkdownExtra, SmartyPants">
+### What do you gain by using Markdownify?
+
+[Markdown][] is a great way to format texts for the internet. Without much experience an easy to read
+text is written -- without the bloat of HTML tags.
+
+But this comes -- like so many things -- with a cost: performance will suffer and CPU is wasted since
+normally Markdown would have to convert your texts to HTML for every page impression. Only
+some way of caching could prevent this.
+
+That is exactly the point where *Markdownify* (formerly `html2text.php`) comes into play: Write texts
+in Markdown and save them in HTML. You won't need a copy of the original Markdown input, since
+Markdownify can convert the saved HTML back to Markdown. And because page impressions are far more often
+than write actions, this gives you **a simple way to increase your page's performance**.
+
+*Another benefit* for a CMS or similar software is that now only _one_ format of text is saved -- HTML.
+The user can now choose wether to write texts in plain HTML or use a full fledged Wysiwyg editor. And
+of course he can write in Markdown!
+
+### Yeah, but what do I lose?
+
+ *  [PHP Markdown Extra][] has the ability to markdown abbrevations (`&lt;abbr>`). `Markdownify_Extra`
+	will convert these, though the following problem can arise:
+
+	    &lt;p>&lt;abbr title="Definition 1">ABKÜRZUNG&lt;/abbr>&lt;/p>
+	
+	    &lt;p>&lt;abbr title="Definition 2">ABKÜRZUNG&lt;/abbr>&lt;/p>
+
+	As you can see on the [demo page][demo] (don't forget to activate Markdownify Extra), the last definition
+	will be neglected. This is just a very minor problem in my eyes since two definitions for one and the same
+	abbrevation don't make much sense!
+
+### Technical stuff
+
+**Status:** Markdownify is currently in **beta** status. `Markdownify_Extra` is still missing support for
+"Markdown in blockelements" and word wrapping is not yet finished. Additionally I hope to gain a few performance
+boosts by refactoring a few parts.
+
+Markdownify is written in [PHP][] and should work since PHP 4.3. The test cases from [MDTest][] were used 
+as a basis for the  *"test driven development"* (TDD). To convert Markdown to HTML you should use
+[Michel Fortin's][mf] [PHP Markdown][] or [PHP Markdown Extra][].
+
+
+#### How to use Markdownify
+
+It could not be much easier:
+
+	&lt;?php
+	require_once 'markdownify.php';
+	$md = new Markdownify;
+	echo $md->parseString($htmlInput);
+
+And _yes_ -- **PHP Markdown Extra is supported by Markdownify!**. Just use the `Markdownify_Extra` class and
+see tables, definition lists and all that glory stuff get converted.
+
+Optionally you can give some parameters to the class constructor:
+		
+* The first one is a boolean which decides whether link definitions shall be displayed after each block element.
+Default is `false`.
+* The second parameter is an integer or `false` and sets the width to which the outputted Markdown text shall be
+_wordwrapped_. Default is `false` **This feature is not yet finished!**
+* The last argument is a boolean again and tells Markdownify whether to keep non-markdownable HTML tags or to
+discard them. Default is `true`.
+
+### License
+
+Markdownify is published under the [LGPL][], i.e. you can use it freely as in beer and speech. Also using
+Markdownify in commercial products is allowed. [Open Source][] makes it possible!
+
+### Author
+
+[Milian Wolff][] is the brain behind Markdownify. He is 19 years old and currently studying physics in Berlin.
+He does webdevelopment for years now and his projects get released under open source licenses.
+
+Here are some ways to get in contact with him:
+
+Email:
+: &lt;mail@milianw.de>
+
+Jabber:
+: milianw@amessage.de
+
+MSN:
+: msn@milianw.de
+
+ICQ:
+: 201408577
+
+*[CMS]: Content Management System
+*[Wysiwyg]: What you see is what you get
+[Markdown]: http://daringfireball.com/projects/markdown "The Markdown project page by John Gruber"
+[PHP]: http://php.net
+[mf]: http://michelf.com
+[PHP Markdown]: http://michelf.com/projects/php-markdown
+[PHP Markdown Extra]: http://michelf.com/projects/php-markdown/extra
+[demo]: demo.php "Try Markdownify now!"
+[LGPL]: http://www.gnu.org/licenses/lgpl.html "GNU Lesser General Public License"
+[Open Source]: http://www.opensource.org/ "The Open Source Initiative"
+[MDTest]: http://git.michelf.com/mdtest/
+[Milian Wolff]: http://milianw.de "visit Milian Wolff's website"
+	</variable>
+	<variable name="convertLabel">convert to Markdown!</variable>
+	<variable name="keepHTML">keep HTML Tags</variable>
+	<variable name="leap">ouput link definitions after each block element</variable>
+	<variable name="Input">Input</variable>
+	<variable name="htmlInput">HTML Input</variable>
+	<variable name="mdInput">Markdown Input</variable>
+	<variable name="extra">Markdownify Extra</variable>
+	<variable name="mdParsed">converted to Markdown</variable>
+	<variable name="htmlParsed">converted to HTML</variable>
+	<variable name="htmlOutput">HTML Output</variable>
+	<variable name="mdOutput">Markdown Output</variable>
+	<variable name="footer" applyFilter="MarkdownExtra">the icons on this page belong to the [Oxygen Project](http://oxygen-icons.org) and are licensed under the [Creative Commons Attribution-Share Alike 3.0 Unported](http://creativecommons.org/licenses/by-sa/3.0/) license</variable>
+	<variable name="demo_options">Options</variable>
+	<variable name="donate">If you like Markdownify and want to thank me, please donate!"</variable>
 </dict>

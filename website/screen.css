@@ -25,17 +25,16 @@ body{
 	min-width:100%;
 }
 #body {
-	max-width:900px;
 	min-width:800px;
 	padding:0 20px;
 	min-height:100%;
-	background:#fff;
+	background:#fafafa;
 }
 a img {
 	border:none;
 }
 a {
-	color:#0AF;
+	color:red;
 	text-decoration:none;
 }
 a:hover,a:focus {
@@ -61,11 +60,17 @@ h3 {
 h4 {
 	font-weight:bold;
 }
-p {
+p, pre {
 	margin:0 20px 5px 20px;
+}
+pre {
+	padding:0 10px;
 }
 ul, ol, dl {
 	margin:0 40px 10px 40px;
+}
+ul pre, ol pre, dl pre {
+	margin:0 0 5px 0;
 }
 ul li {
 	list-style:outside square;
@@ -87,50 +92,52 @@ strong {
 em {
 	font-style:italic;
 }
-pre {
-	margin:0 10px 5px 10px;
-}
 pre, code {
 	font-family:"DejaVu Sans Mono", monospace;
 }
 #navigation {
-	width:50em;
 	font-size:1.2em;
-	margin:-20px auto 20px auto;
+	margin:-20px 0 20px 10em;
 }
 #navigation li {
 	float:left;
 	list-style:none;
 }
-#navigation li * {
+#navigation li a, #navigation li span {
 	display:block;
 	height:100%;
 	padding:40px 5px 0 5px;
 	background:top center no-repeat;
 }
-li#about * {
+li#about a, li#about span {
 	background-image:url(icons/help-contents.png);
 }
-li#demo * {
+li#demo a, li#demo span {
 	background-image:url(icons/system-search.png);
 }
-li#download * {
+li#download a, li#download span {
 	background-image:url(icons/application-x-compressed-tar.png);
 }
-li#tracker * {
+li#tracker a, li#tracker span {
 	background-image:url(icons/applications-engineering.png);
 }
-li#svn * {
+li#svn a, li#svn span {
 	background-image:url(icons/kexi.png);
 }
-li#sf * {
+li#sf a, li#sf span {
 	background-image:url(http://sflogo.sourceforge.net/sflogo.php?group_id=204915&amp;type=3);
+}
+li#donate {
+	padding-left:20px;
 }
 #footer {
 	padding:10px 20px 2px 20px;
 	font-size:0.8em;
 	text-align:center;
 	clear:both;
+}
+#aboutContent, form {
+	max-width:900px;
 }
 fieldset {
 	padding:2px 5px;
@@ -174,6 +181,9 @@ table {
 }
 .third {
 	width:33%;
+}
+.third pre, .third code {
+	white-space:pre-wrap;
 }
 td {
 	vertical-align:top;

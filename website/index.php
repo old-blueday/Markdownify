@@ -44,6 +44,7 @@ try {
 	}
 	$fry = new Fry(new FryConfig('config.xml'));
 	$fry->setDictionary(new FryDictionary('l18n/'.$language.'.xml'));
+	define('LANG', $language);
 	$fry->setGlobal('title', 'Markdownify: The HTML to Markdown converter for PHP');
 
 	$body = new FryTemplate('templates/body.tpl.php');
@@ -81,6 +82,7 @@ try {
 			$parsed = '';
 			$input = '';
 			$output = '';
+			$inputOrig = '';
 		}
 		$content = new FryTemplate('demo.tpl.php');
 		$content->set('inputForm', $inputOrig);
@@ -101,3 +103,5 @@ try {
 			. "<br/>\n<b>Trace:</b><br/>\n" 
 			. preg_replace("/(\n)|(\r\n)/", "\\1<br/>", $e->getTraceAsString());
 }
+error_reporting(E_ALL);
+include_once('../../slimstat/inc.stats.php');
