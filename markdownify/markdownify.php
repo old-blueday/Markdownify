@@ -667,7 +667,7 @@ class Markdownify {
 				$tag['href'] = 'mailto:'.$bufferDecoded;
 			}
 			# [This link][id]
-			foreach ($this->stack['a'] as &$tag2) {
+			foreach ($this->stack['a'] as $tag2) {
 				if ($tag2['href'] == $tag['href'] && $tag2['title'] === $tag['title']) {
 					$tag['linkID'] = $tag2['linkID'];
 					break;
