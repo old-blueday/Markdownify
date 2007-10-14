@@ -325,7 +325,7 @@ class parseHTML {
 		}
 		# get tagName
 		while (isset($this->html[$pos])) {
-			$pos_ord = ord($this->html[$pos]);
+			$pos_ord = ord(strtolower($this->html[$pos]));
 			if (($pos_ord >= $a_ord && $pos_ord <= $z_ord) || (!empty($tagName) && is_numeric($this->html[$pos]))) {
 				$tagName .= $this->html[$pos];
 				$pos++;
@@ -334,13 +334,14 @@ class parseHTML {
 				break;
 			}
 		}
+
+		$tagName = strtolower($tagName);
+
 		if (empty($tagName) || !isset($this->blockElements[$tagName])) {
 			# something went wrong => invalid tag
 			$this->invalidTag();
 			return false;
 		}
-
-		$tagName = strtolower($tagName);
 
 		# get tag attributes
 		/** TODO: in html 4 attributes do not need to be quoted **/
@@ -358,7 +359,7 @@ class parseHTML {
 				break;
 			}
 
-			$pos_ord = ord($this->html[$pos]);
+			$pos_ord = ord(strtolower($this->html[$pos]));
 			if ($pos_ord >= $a_ord && $pos_ord <= $z_ord) {
 				# attribute name
 				$currAttrib .= $this->html[$pos];
@@ -472,6 +473,27 @@ class parseHTML {
 		# truncate multiple whitespaces to a single one
 		$this->node = preg_replace('#\s+#s', ' ', $this->node);
 	}
+	/**
+	 * normalize self::node
+	 * 
+	 * @param void
+	 * @return void
+	 */
+	function normalizeNode() {
+		$this->node = '<';
+		if (!$this->isStartTag) {
+			$this->node .= '/'.$this->tagName.'>';
+			return;
+		}
+		$this->node .= $this->tagName;
+		foreach ($this->tagAttributes as $name => $value) {
+			$this->node .= ' '.$name.'="'.str_replace('"', '&quot;', $value).'"';
+		}
+		if ($this->isEmptyTag) {
+			$this->node .= ' /';
+		}
+		$this->node .= '>';
+	}
 }
 
 /**
@@ -488,6 +510,9 @@ function indentHTML($html, $indent = "  ") {
 	$last = true; # last tag was block elem
 	$indent_a = array();
 	while($parser->nextNode()) {
+		if ($parser->nodeType == 'tag') {
+			$parser->normalizeNode();
+		}
 		if ($parser->nodeType == 'tag' && $parser->isBlockElement) {
 			$isPreOrCode = in_array($parser->tagName, array('code', 'pre'));
 			if (!$parser->keepWhitespace && !$last && !$isPreOrCode) {

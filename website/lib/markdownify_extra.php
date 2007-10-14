@@ -92,7 +92,7 @@ class Markdownify_Extra extends Markdownify {
 			'title' => 'required',
 		);
 		# build RegEx lookahead to decide wether table can pe parsed or not
-		$inlineTags = array_keys($this->parser->blockElements, false, true);
+		$inlineTags = array_keys($this->parser->blockElements, false);
 		$colContents = '(?:[^<]|<(?:'.implode('|', $inlineTags).'|[^a-z]))+';
 		$this->tableLookaheadHeader = '{
 		^\s*(?:<thead\s*>)?\s*                               # open optional thead
