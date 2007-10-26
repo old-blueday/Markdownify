@@ -1,0 +1,114 @@
+<a name="Removing_the_old_nvidia_driver"></a><h3><span class="editsection">[<a href="/index.php?title=NVidia&amp;action=edit&amp;section=1" title="Edit section: Removing the old nvidia driver">edit</a>]</span> <span class="mw-headline">Removing the old nvidia driver</span></h3>
+<p>This only applies for those who have an older version of the nvidia driver installed from your distribution's repositories. To check what version of the nvidia driver you have installed now type this into a terminal:
+</p>
+<pre>glxinfo | grep &quot;OpenGL version string:&quot;</pre>
+<p>This should return something like this:
+</p>
+<pre>OpenGL version string: 2.1.0 NVIDIA 96.31</pre>
+<p>Where the last line is the driver version. If your version is 9631 (see above) or higher then you can skip this and move on to the section entitled "Modifying your xorg.conf file".
+</p><p><i>Ubuntu:</i>
+</p><p>To uninstall the current driver type this into a terminal:
+</p>
+<pre>sudo apt-get remove --purge nvidia-glx</pre>
+<p>Please also ensure that the "linux-restricted-modules"-packages have been uninstalled. Alternatively, you can edit the /etc/default/linux-restricted-modules configuration file and add the following:
+</p>
+<pre>DISABLED_MODULES=&quot;nv nvidia_new&quot;</pre>
+<p>Now reboot!
+</p>
+<a name="Install_the_latest_nvidia_driver"></a><h3><span class="editsection">[<a href="/index.php?title=NVidia&amp;action=edit&amp;section=2" title="Edit section: Install the latest nvidia driver">edit</a>]</span> <span class="mw-headline">Install the latest nvidia driver</span></h3>
+<p>First you must install the necessary packages to build a kernel interface for the latest nvidia driver:
+</p>
+<pre>sudo apt-get install linux-headers-`uname -r` build-essential gcc gcc-3.4 xserver-xorg-dev</pre>
+<p>After getting these packages you should download the driver from <a href="http://www.nvidia.com/object/unix.html" class="external free" title="http://www.nvidia.com/object/unix.html" rel="nofollow">http://www.nvidia.com/object/unix.html</a>. You should also print this step of the guide because you're going to go terminal only. The first thing you need to do is stop the currently running X-server.
+</p><p>Close all applications and press Ctrl+Alt+F1 to switch to a non-X terminal (at this point you can still go back to your X session by pressing Ctrl+Alt+F7). Now log in with your username and password, then stop the currently running X-server by typing the following:
+</p>
+<pre>sudo /etc/init.d/gdm stop</pre>
+<p>Now you must navigate to the directory where you downloaded the nvidia driver. Once there you must type this:
+</p>
+<pre>sudo sh NVIDIA-Linux-x86-1.0-9631-pkg1.run</pre>
+<p>Be sure to replace the "x86-1.0-9631-pkg1" with the appropriate architecture and version for the file you downloaded. For example "NVIDIA-Linux-x86_64-100.14.11-pkg2.run" for an amd64 kernel.
+</p><p>Now follow the instructions and if it complains about not finding a matching kernel-interface choose to download a new one. Most probably it will fail and create a matching interface of its own. If it asks you whether to modify your xorg.conf, choose "Yes". Now essentially you are done and most probably you could just continue with "Now reboot you system ...". The following detailed instructions tell you how to deal with some special problems.
+</p><p>The new module is created as the file "/lib/modules/`uname -r`/kernel/drivers/video/nvidia.ko"  . You can query where "modprobe" thinks the module "nvidia" is located. It should be: 
+</p>
+<pre>$ modprobe --show-depends nvidia
+insmod /lib/modules/2.6.22-8-generic/kernel/drivers/i2c/i2c-core.ko 
+insmod /lib/modules/2.6.22-8-generic/kernel/drivers/video/nvidia.ko</pre>
+<p>If this is the case, you can skip the next few lines and continue with "Now reboot your system ...".
+If instead you get
+</p>
+<pre>$ modprobe --show-depends nvidia
+install /sbin/lrm-video nvidia</pre>
+<p>then you probably decided to keep the linux restricted modules (See "Removing the old Nvidia driver") and the restricted driver manager is still in the way. It will load a module from the linux-restricted-modules package. One way to circumvent this is to rename the newly compiled driver file to "nvidia-is.ko":
+</p>
+<pre>cd /lib/modules/`uname -r`/kernel/drivers/video
+sudo mv nvidia.ko nvidia-is.ko</pre>
+<p>and make a new entry in the modprobe aliases:
+</p>
+<pre>sudo gedit /etc/modprobe.d/nvidia-install-script</pre>
+<p>with the lines
+</p>
+<pre># Make --modprobe nvidia-- look for nvidia-is
+alias nvidia nvidia-is</pre>
+<p>You can check that this worked with:
+</p>
+<pre>$ modprobe --show-depends nvidia
+insmod /lib/modules/2.6.22-8-generic/kernel/drivers/i2c/i2c-core.ko 
+insmod /lib/modules/2.6.22-8-generic/kernel/drivers/video/nvidia-is.ko</pre>
+<p>Now reboot your system by typing:
+</p>
+<pre>sudo shutdown now -r</pre>
+<p>If you see the nvidia logo on a gray background after rebooting it means that the driver is running and installed properly. If it doesn't, you can study the log files "/var/log/nvidia-installer.log", "/var/log/Xorg.0.log" and "/var/log/gdm/0.log" to see what went wrong.
+</p>
+<a name="Modifying_your_xorg.conf_file"></a><h3><span class="editsection">[<a href="/index.php?title=NVidia&amp;action=edit&amp;section=3" title="Edit section: Modifying your xorg.conf file">edit</a>]</span> <span class="mw-headline">Modifying your xorg.conf file</span></h3>
+<p>Now you have to add a few lines you your xorg.conf file. This is necessary for Compiz to run properly. Failure to do this will result in no eye candy for you. There are two ways of doing this:
+</p><p>The easy way is to enter the following commands into a terminal:
+</p>
+<pre>sudo nvidia-xconfig --composite --render-accel --add-argb-glx-visuals</pre>
+<p>Now press Ctrl+Alt+Backspace to restart your X-server or reboot.
+</p><p>Note: These commands might not make the correct changes to your Xorg.conf file.  So to make sure it has open the Xorg.conf file as detailed below and check for the correct settings.  If it has not changed the file as described below do so.  but do not take away any thing already in there, unless it says to below.
+</p><p>The hard way is editing your xorg.conf file manually, but it isn't that hard. First type this into a terminal:
+</p>
+<pre>sudo cp /etc/X11/xorg.conf /etc/X11/xorg.conf-backup
+sudo gedit /etc/X11/xorg.conf</pre>
+<p>Find this section:
+</p>
+<pre>Section &quot;Module&quot;
+	Load	&quot;i2c&quot;
+	Load	&quot;bitmap&quot;
+	...
+	Load	&quot;type1&quot;
+	Load	&quot;vbe&quot;
+EndSection</pre>
+<p>Comment out dri and GLcore (if present), like this:
+</p>
+<pre>#	Load	&quot;dri&quot;
+#	Load	&quot;GLcore&quot;</pre>
+<p>Make sure the glx module is loaded, like this:
+</p>
+<pre>Load	&quot;glx&quot;</pre>
+<p>Make sure the X11 extmod will load:
+</p>
+<pre>Load       &quot;extmod&quot;</pre>
+<p>Find this section (your values may vary)&nbsp;:
+</p>
+<pre>Section &quot;Screen&quot;
+    Identifier     &quot;Default Screen&quot;
+    Device         &quot;NVIDIA Corporation NV40 [GeForce 6800]&quot;
+    Monitor        &quot;SyncMaster&quot;
+    DefaultDepth    24
+    SubSection     &quot;Display&quot;
+        Depth       24
+        Modes      &quot;1440x900&quot;
+    EndSubSection
+EndSection</pre>
+<p>Make sure DefaultDepth is set to 24, if it isn't already, then add the following lines below "EndSubSection" or above the first "SubSection":
+</p>
+<pre>Option         &quot;AddARGBGLXVisuals&quot; &quot;true&quot;
+Option         &quot;DisableGLXRootClipping&quot; &quot;true&quot;</pre>
+<p>Add this to the very end:
+</p>
+<pre>Section &quot;Extensions&quot;
+    Option         &quot;Composite&quot; &quot;Enable&quot;
+EndSection</pre>
+<p>Save the file and exit the text editor. Now restart the X-server by pressing Ctrl+Alt+Backspace or reboot. After this you're ready to install Compiz!
+</p>

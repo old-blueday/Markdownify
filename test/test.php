@@ -36,6 +36,9 @@ switch (param('suite')) {
 	case 3:
 		$suite = 'PHP Markdown Extra';
 		break;
+	case 4:
+		$suite = 'Markdownify';
+		break;
 }
 
 define('TESTSUITE', 'mdtest/'.$suite.'.mdtest/');
