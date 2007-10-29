@@ -236,6 +236,10 @@ class Markdownify {
 		'\[(.+)\](\s*)\[(.*)\]' => '\[$1\]$2\[$3\]', # links: [text][id] => [text\][id\]
 	);
 	/**
+	 * wether last processed node was a block tag or not
+	 */
+	var $lastWasBlockTag = false;
+	/**
 	 * iterate through the nodes and decide what we
 	 * shall do with the current node
 	 *
@@ -281,6 +285,16 @@ class Markdownify {
 						}
 					}
 					if ($this->isMarkdownable()) {
+						if ($this->parser->isBlockElement && $this->parser->isStartTag && !$this->lastWasBlockTag && !empty($this->output)) {
+							if (!empty($this->buffer)) {
+								$str =& $this->buffer[count($this->buffer) -1];
+							} else {
+								$str =& $this->output;
+							}
+							if (substr($str, -strlen($this->indent)-1) != "\n".$this->indent) {
+								$str .= "\n".$this->indent;
+							}
+						}
 						call_user_func(array(&$this, 'handleTag_'.$this->parser->tagName));
 						if ($this->linksAfterEachParagraph && $this->parser->isBlockElement && !$this->parser->isStartTag) {
 							$this->flushStacked();
@@ -293,6 +307,7 @@ class Markdownify {
 					trigger_error('invalid node type', E_USER_ERROR);
 					break;
 			}
+			$this->lastWasBlockTag = $this->parser->nodeType == 'tag' && $this->parser->isStartTag && $this->parser->isBlockElement;
 		}
 		### cleanup
 		$this->output = rtrim(str_replace('&amp;', '&', str_replace('&lt;', '<', str_replace('&gt;', '>', $this->output))));
