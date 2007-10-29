@@ -107,7 +107,7 @@ class Markdownify {
 	var $linksAfterEachParagraph = false;
 	/**
 	 * constructor, set options, setup parser
-	 * 
+	 *
 	 * @param bool $linksAfterEachParagraph wether or not to flush stacked links after each paragraph
 	 *             defaults to false
 	 * @param int $bodyWidth wether or not to wrap the output to the given width
@@ -357,7 +357,7 @@ class Markdownify {
 	}
 	/**
 	 * output link references (e.g. [1]: http://example.com "title");
-	 * 
+	 *
 	 * @param void
 	 * @return void
 	 */
@@ -492,6 +492,8 @@ class Markdownify {
 				# escape some chars in normal Text
 				$this->parser->node = preg_replace($this->escapeInText['search'], $this->escapeInText['replace'], $this->parser->node);
 			}
+		} else {
+			$this->parser->node = str_replace(array('&quot;', '&apos'), array('"', '\''), $this->parser->node);
 		}
 		$this->out($this->parser->node);
 	}
@@ -849,7 +851,7 @@ class Markdownify {
 	}
 	/**
 	 * handle <br /> tags
-	 * 
+	 *
 	 * @param void
 	 * @return void
 	 */
@@ -1055,7 +1057,7 @@ class Markdownify {
 	}
 	/**
 	 * UTF-8 chr() which supports numeric entities
-	 * 
+	 *
 	 * @author grey - greywyvern - com <http://www.php.net/manual/en/function.chr.php#55978>
 	 * @param array $matches
 	 * @return string UTF-8 encoded
@@ -1066,7 +1068,7 @@ class Markdownify {
 		} else if ($dec < 2048) {
 			$utf = chr(192 + (($dec - ($dec % 64)) / 64));
 			$utf .= chr(128 + ($dec % 64));
-		} else { 
+		} else {
 			$utf = chr(224 + (($dec - ($dec % 4096)) / 4096));
 			$utf .= chr(128 + ((($dec % 4096) - ($dec % 64)) / 64));
 			$utf .= chr(128 + ($dec % 64));
@@ -1075,10 +1077,10 @@ class Markdownify {
 	}
 	/**
 	 * UTF-8 strlen()
-	 * 
+	 *
 	 * @param string $str
 	 * @return int
-	 * 
+	 *
 	 * @author dtorop 932 at hotmail dot com <http://www.php.net/manual/en/function.strlen.php#37975>
 	 * @author Milian Wolff <http://milianw.de>
 	 */
