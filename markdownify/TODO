@@ -4,7 +4,7 @@ Markdownify
 * organize methods better (i.e. flushlinebreaks & setlinebreaks close to each other)
 * take a look at function names etc.
 * is the new (in rev. 93) lastclosedtag property needed?
-
+* word wrapping (some work is done but it's still very buggy)
 
 
 Markdownify Extra
