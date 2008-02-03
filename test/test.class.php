@@ -36,8 +36,10 @@ class test {
 		$bodyWidth = param('width');
 		$keepHTML = param('html', true);
 
+		require_once '../markdownify/markdownify.php';
 		if (param('extra')) {
 			require_once 'mdtest/Implementations/markdown-extra.php';
+			require_once '../markdownify/markdownify_extra.php';
 			$this->markdownify = new Markdownify_Extra($linksAfterEachParagraph, $bodyWidth, $keepHTML);
 			echo 'Using '.MARKDOWN_PARSER_CLASS.' V'.MARKDOWNEXTRA_VERSION." with Markdownify_Extra\n\n";
 		} else {

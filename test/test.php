@@ -22,8 +22,6 @@ chdir(dirname(__FILE__));
 require_once 'folder.php';
 require_once 'functions.php';
 require_once 'test.class.php';
-require_once '../markdownify/markdownify.php';
-require_once '../markdownify/markdownify_extra.php';
 
 
 switch (param('suite')) {
