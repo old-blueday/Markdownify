@@ -237,8 +237,16 @@ class Markdownify {
 	);
 	/**
 	 * wether last processed node was a block tag or not
+	 * 
+	 * @var bool
 	 */
 	var $lastWasBlockTag = false;
+	/**
+	 * name of last closed tag
+	 * 
+	 * @var string
+	 */
+	var $lastClosedTag = '';
 	/**
 	 * iterate through the nodes and decide what we
 	 * shall do with the current node
@@ -277,12 +285,8 @@ class Markdownify {
 						$this->handleTagToText();
 						continue;
 					}
-					if (!$this->parser->keepWhitespace && $this->parser->isBlockElement) {
-						if ($this->parser->isStartTag) {
-							$this->parser->html = ltrim($this->parser->html);
-						} elseif ($this->parser->tagName != 'pre') {
-							#$this->output = rtrim($this->output);
-						}
+					if (!$this->parser->keepWhitespace && $this->parser->isBlockElement && $this->parser->isStartTag) {
+						$this->parser->html = ltrim($this->parser->html);
 					}
 					if ($this->isMarkdownable()) {
 						if ($this->parser->isBlockElement && $this->parser->isStartTag && !$this->lastWasBlockTag && !empty($this->output)) {
@@ -295,12 +299,17 @@ class Markdownify {
 								$str .= "\n".$this->indent;
 							}
 						}
-						call_user_func(array(&$this, 'handleTag_'.$this->parser->tagName));
+						$func = 'handleTag_'.$this->parser->tagName;
+						$this->$func();
 						if ($this->linksAfterEachParagraph && $this->parser->isBlockElement && !$this->parser->isStartTag) {
 							$this->flushStacked();
 						}
+						if (!$this->parser->isStartTag) {
+							$this->lastClosedTag = $this->parser->tagName;
+						}
 					} else {
 						$this->handleTagToText();
+						$this->lastClosedTag = '';
 					}
 					break;
 				default:
@@ -399,7 +408,7 @@ class Markdownify {
 	 * @return void
 	 */
 	function flushLinebreaks() {
-		if (!empty($this->output)) {
+		if ($this->lineBreaks && !empty($this->output)) {
 			$this->out(str_repeat("\n".$this->indent, $this->lineBreaks), true);
 		}
 		$this->lineBreaks = 0;
@@ -412,7 +421,7 @@ class Markdownify {
 	 */
 	function handleTagToText() {
 		if (!$this->keepHTML) {
-			if (!$this->parser->isStartTag) {
+			if (!$this->parser->isStartTag && $this->parser->isBlockElement) {
 				$this->setLineBreaks(2);
 			}
 		} else {
@@ -497,7 +506,7 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleText() {
-		if ($this->hasParent('pre') && strstr($this->parser->node, "\n")) {
+		if ($this->hasParent('pre') && strpos($this->parser->node, "\n") !== false) {
 			$this->parser->node = str_replace("\n", "\n".$this->indent, $this->parser->node);
 		}
 		if (!$this->hasParent('code') && !$this->hasParent('pre')) {
@@ -511,6 +520,7 @@ class Markdownify {
 			$this->parser->node = str_replace(array('&quot;', '&apos'), array('"', '\''), $this->parser->node);
 		}
 		$this->out($this->parser->node);
+		$this->lastClosedTag = '';
 	}
 	/**
 	 * handle <em> and <i> tags
@@ -804,13 +814,12 @@ class Markdownify {
 	function handleTag_ul() {
 		if ($this->parser->isStartTag) {
 			$this->stack();
-			if (substr($this->output, -strlen("\n".$this->indent)) != "\n".$this->indent) {
-				# make sure, that we put this on a new line
-				$this->out("\n".$this->indent);
+			if (!$this->keepHTML && $this->lastClosedTag == $this->parser->tagName) {
+				$this->out("\n".$this->indent.'<!-- -->'."\n".$this->indent."\n".$this->indent);
 			}
 		} else {
 			$this->unstack();
-			if ($this->parent() != 'li' || preg_match('#^\s*(</li\s*>\s*<li\s*>\s*)?<p\s*>#sU', $this->parser->html, $matches)) {
+			if ($this->parent() != 'li' || preg_match('#^\s*(</li\s*>\s*<li\s*>\s*)?<(p|blockquote)\s*>#sU', $this->parser->html)) {
 				# dont make Markdown add unneeded paragraphs
 				$this->setLineBreaks(2);
 			}
