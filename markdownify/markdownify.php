@@ -301,7 +301,7 @@ class Markdownify {
 						}
 						$func = 'handleTag_'.$this->parser->tagName;
 						$this->$func();
-						if ($this->linksAfterEachParagraph && $this->parser->isBlockElement && !$this->parser->isStartTag) {
+						if ($this->linksAfterEachParagraph && $this->parser->isBlockElement && !$this->parser->isStartTag && empty($this->parser->openTags)) {
 							$this->flushStacked();
 						}
 						if (!$this->parser->isStartTag) {
