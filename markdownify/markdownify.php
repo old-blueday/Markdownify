@@ -127,6 +127,7 @@ class Markdownify {
 		}
 
 		$this->parser = new parseHTML;
+		$this->parser->noTagsInCode = true;
 
 		# we don't have to do this every time
 		$search = array();
@@ -317,6 +318,9 @@ class Markdownify {
 					break;
 			}
 			$this->lastWasBlockTag = $this->parser->nodeType == 'tag' && $this->parser->isStartTag && $this->parser->isBlockElement;
+		}
+		if (!empty($this->buffer)) {
+			trigger_error('buffer was not flushed, this is a bug. please report!', E_USER_ERROR);
 		}
 		### cleanup
 		$this->output = rtrim(str_replace('&amp;', '&', str_replace('&lt;', '<', str_replace('&gt;', '>', $this->output))));
@@ -789,6 +793,14 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_pre() {
+		if ($this->keepHTML) {
+			# check if a simple <code> follows
+			if (!preg_match('#^\s*<code\s*>#Us', $this->parser->html)) {
+				# this is no standard markdown code block
+				$this->handleTagToText();
+				return;
+			}
+		}
 		$this->indent('    ');
 		if (!$this->parser->isStartTag) {
 			$this->setLineBreaks(2);
