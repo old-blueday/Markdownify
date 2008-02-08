@@ -793,7 +793,7 @@ class Markdownify {
 	 * @return void
 	 */
 	function handleTag_pre() {
-		if ($this->keepHTML) {
+		if ($this->keepHTML && $this->parser->isStartTag) {
 			# check if a simple <code> follows
 			if (!preg_match('#^\s*<code\s*>#Us', $this->parser->html)) {
 				# this is no standard markdown code block
