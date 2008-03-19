@@ -238,13 +238,13 @@ class Markdownify {
 	);
 	/**
 	 * wether last processed node was a block tag or not
-	 * 
+	 *
 	 * @var bool
 	 */
 	var $lastWasBlockTag = false;
 	/**
 	 * name of last closed tag
-	 * 
+	 *
 	 * @var string
 	 */
 	var $lastClosedTag = '';
@@ -320,7 +320,10 @@ class Markdownify {
 			$this->lastWasBlockTag = $this->parser->nodeType == 'tag' && $this->parser->isStartTag && $this->parser->isBlockElement;
 		}
 		if (!empty($this->buffer)) {
-			trigger_error('buffer was not flushed, this is a bug. please report!', E_USER_ERROR);
+			trigger_error('buffer was not flushed, this is a bug. please report!', E_USER_WARNING);
+			while (!empty($this->buffer)) {
+				$this->out($this->unbuffer());
+			}
 		}
 		### cleanup
 		$this->output = rtrim(str_replace('&amp;', '&', str_replace('&lt;', '<', str_replace('&gt;', '>', $this->output))));
@@ -515,7 +518,7 @@ class Markdownify {
 		}
 		if (!$this->hasParent('code') && !$this->hasParent('pre')) {
 			# entity decode
-			$this->decode(&$this->parser->node);
+			$this->parser->node = $this->decode($this->parser->node);
 			if (!$this->skipConversion) {
 				# escape some chars in normal Text
 				$this->parser->node = preg_replace($this->escapeInText['search'], $this->escapeInText['replace'], $this->parser->node);
@@ -642,7 +645,7 @@ class Markdownify {
 		if ($this->parser->isStartTag) {
 			$this->buffer();
 			if (isset($this->parser->tagAttributes['title'])) {
-				$this->decode(&$this->parser->tagAttributes['title']);
+				$this->parser->tagAttributes['title'] = $this->decode($this->parser->tagAttributes['title']);
 			} else {
 				$this->parser->tagAttributes['title'] = null;
 			}
@@ -703,12 +706,12 @@ class Markdownify {
 		}
 
 		if (isset($this->parser->tagAttributes['title'])) {
-			$this->decode(&$this->parser->tagAttributes['title']);
+			$this->parser->tagAttributes['title'] = $this->decode($this->parser->tagAttributes['title']);
 		} else {
 			$this->parser->tagAttributes['title'] = null;
 		}
 		if (isset($this->parser->tagAttributes['alt'])) {
-			$this->decode(&$this->parser->tagAttributes['alt']);
+			$this->parser->tagAttributes['alt'] = $this->decode($this->parser->tagAttributes['alt']);
 		} else {
 			$this->parser->tagAttributes['alt'] = null;
 		}
@@ -722,7 +725,7 @@ class Markdownify {
 			$this->out('!['.$this->parser->tagAttributes['alt'].']('.$this->parser->tagAttributes['title'].')', true);
 			return;
 		} else {
-			$this->decode(&$this->parser->tagAttributes['src']);
+			$this->parser->tagAttributes['src'] = $this->decode($this->parser->tagAttributes['src']);
 		}
 
 		# [This link][id]
