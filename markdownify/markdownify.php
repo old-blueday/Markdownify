@@ -193,6 +193,8 @@ class Markdownify {
 	 * @var array<string>
 	 */
 	var $ignore = array(
+	  'html',
+	  'body',
 	);
 	/**
 	 * html tags to be dropped (contents will not be parsed!)
@@ -266,6 +268,7 @@ class Markdownify {
 		while ($this->parser->nextNode()) {
 			switch ($this->parser->nodeType) {
 				case 'doctype':
+				  break;
 				case 'pi':
 				case 'comment':
 					if ($this->keepHTML) {
@@ -1061,7 +1064,7 @@ class Markdownify {
 	 * @author derernst@gmx.ch <http://www.php.net/manual/en/function.html-entity-decode.php#68536>
 	 * @author Milian Wolff <http://milianw.de>
 	 */
-	function decode($text, $quote_style = ENT_NOQUOTES) {
+	function decode($text, $quote_style = ENT_QUOTES) {
 		if (version_compare(PHP_VERSION, '5', '>=')) {
 			# UTF-8 is only supported in PHP 5.x.x and above
 			$text = html_entity_decode($text, $quote_style, 'UTF-8');
