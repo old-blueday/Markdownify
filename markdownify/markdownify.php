@@ -204,6 +204,10 @@ class Markdownify {
 		'head',
 		'style',
 		'form',
+		'area',
+		'object',
+		'param',
+		'iframe',
 	);
 	/**
 	 * Markdown indents which could be wrapped
@@ -276,7 +280,7 @@ class Markdownify {
 					break;
 				case 'tag':
 					if (in_array($this->parser->tagName, $this->ignore)) {
-						continue;
+						break;
 					}
 					if ($this->parser->isStartTag) {
 						$this->flushLinebreaks();
