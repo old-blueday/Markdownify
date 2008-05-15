@@ -11,6 +11,7 @@ Markdownify Extra
 =================
 
 * handle table alignment with KEEP_HTML=false
+* handle tables without headings when KEEP_HTML=false is set
 * handle Markdown inside non-markdownable tags
 
 
