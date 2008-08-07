@@ -148,7 +148,7 @@ class Markdownify {
    * @return string markdown formatted
    */
   function parseString($html) {
-    $this->parser->html = $html;
+    $this->parser->setHTML($html);
     $this->parse();
     return $this->output;
   }
