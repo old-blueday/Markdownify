@@ -9,7 +9,7 @@
 		}
 		
 		if (!isset($_POST['keepHTML'])) {
-			$keephtml = MDFY_KEEPHTML;
+			$keephtml = !MDFY_KEEPHTML;
 		} else {
 			$keephtml = $_POST['keepHTML'];
 		}
